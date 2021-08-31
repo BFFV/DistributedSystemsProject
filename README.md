@@ -1,2 +1,2 @@
-# Distributed Systems Project
-Project for IIC2523 - Distributed Systems.
+# Distributed Systems P1
+First milestone for the Project for IIC2523 - Distributed Systems.
