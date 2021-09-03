@@ -1,3 +1,6 @@
+Versión Python 3.7.11
+Primera versión basada en https://codeburst.io/building-your-first-chat-application-using-flask-in-7-minutes-f98de4adfa5d
+
 # Distributed Systems P1
 La Tarea 1 es bastante simple: debe crear un servidor y clientes de chat.
 
