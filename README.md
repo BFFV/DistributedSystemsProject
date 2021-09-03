@@ -1,5 +1,27 @@
-Versión Python 3.7.11
+Recomiendo usar virtualenv con Python 3.7.11
+
 Primera versión basada en https://codeburst.io/building-your-first-chat-application-using-flask-in-7-minutes-f98de4adfa5d
+
+Instalar paquetes necesarios con `pip install -r requirements`.
+
+Correr para que flask reconozca app: `export FLASK_APP=chat_app`.
+
+Para crear un repositorio de migraciones usar `flask db init`
+
+Para generar una migración usar `flask db migrate`
+
+Para aplicar migraciones usar `flask db upgrade`
+
+Cada vez que se cambia el modelo de la base de datos correr comandos 
+`migrate` y `upgrade`.
+
+Para sincronizar bd en otro sistema, refrescar carpeta de migraciones
+desde la fuente y correr el comando `upgrade`
+
+Para ver todos los comandos correr `flask db --help`. Para ayuda también puede 
+revisar [aquí](https://flask-migrate.readthedocs.io/en/latest/)
+
+Finalmente correr aplicación con `flask run`.
 
 # Distributed Systems P1
 La Tarea 1 es bastante simple: debe crear un servidor y clientes de chat.
