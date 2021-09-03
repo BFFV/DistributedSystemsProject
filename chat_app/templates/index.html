@@ -3,7 +3,7 @@
 <head>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <script src="https://cdn.socket.io/4.1.2/socket.io.min.js" integrity="sha384-toS6mmwu70G0fw54EGlWWeA4z3dyJ+dlXBtSURSKN4vyRFOcxd3Bzjj/AoOwY+Rg" crossorigin="anonymous"></script>
-    <title>Title</title>
+    <title>Chat</title>
 </head>
 <body>
 
@@ -17,7 +17,7 @@
     </form>
 
     <script type="text/javascript">
-      var socket = io.connect('http://' + document.domain + ':' + location.port);
+      var socket = io();
 
       socket.on( 'connect', function() {
         socket.emit( 'my event', {
@@ -27,7 +27,7 @@
           e.preventDefault()
           let user_name = $( 'input.username' ).val()
           let user_input = $( 'input.message' ).val()
-          socket.emit( 'my event', {
+          socket.emit( 'message', {
             user_name : user_name,
             message : user_input
           } )

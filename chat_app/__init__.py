@@ -3,8 +3,6 @@ from flask_socketio import SocketIO
 from flask_cors import CORS
 from flask_migrate import Migrate
 
-import os
-
 
 migrate = Migrate()
 socketio = SocketIO()
@@ -22,7 +20,7 @@ def create_app():
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     socketio.init_app(app)
-    from .models import db, User, Message
+    from .models import db, Message
     db.init_app(app)
     migrate.init_app(app, db)
 
@@ -30,15 +28,20 @@ def create_app():
 
     @app.route('/')
     def sessions():
-        return render_template('session.html')
-
-    def message_received(methods=['GET', 'POST']):
-        print('message was received!!!')
+        return render_template('index.html')
 
     @socketio.on('my event')
-    def handle_my_custom_event(json, methods=['GET', 'POST']):
-        print('received my event: ' + str(json))
-        socketio.emit('my response', json, callback=message_received)
+    def handle_event(data):
+        print('received message: ' + str(data))
+
+    @socketio.on('message')
+    def handle_message(json):
+        print('received message: ' + str(json))
+
+        message = Message(json["message"], json["user_name"])
+        Message.insert(message)
+
+        socketio.emit('my response', json)
 
     return app
 
