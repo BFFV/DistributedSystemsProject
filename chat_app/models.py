@@ -11,8 +11,7 @@ class Message(db.Model):
 
     id = Column(Integer, primary_key=True)
     text = Column(String, nullable=False)
-    created_at = Column(DateTime, server_default=func.now(),
-                        nullable=False)
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
     sent_by = Column(String, nullable=False)
 
     def __init__(self, text, sent_by):
