@@ -36,6 +36,10 @@ def create_app():
     def sessions():
         return render_template('index.html')
 
+    @socketio.on('connect')
+    def on_connect():
+        print('Server received connection')
+
     @socketio.on('my event')
     def handle_event(data):
         print('received message: ' + str(data))

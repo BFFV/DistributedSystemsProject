@@ -6,6 +6,10 @@ Instalar paquetes necesarios con `pip install -r requirements`.
 
 Correr para que flask reconozca app: `export FLASK_APP=chat_app`.
 
+Cambiar entre dev y production: `export FLASK_ENV=development/production`.
+
+Activar o desactivar el debug mode: `export FLASK_DEBUG=True/False`.
+
 Para crear un repositorio de migraciones usar `flask db init`
 
 Para generar una migración usar `flask db migrate`
