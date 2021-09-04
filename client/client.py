@@ -24,10 +24,11 @@ def on_message(data):
     sio.emit('symbolSub', {'symbol': 'GBPUSD'})
     sio.emit('symbolSub', {'symbol': 'EURUSD'})
 
-@sio.on('price')
+@sio.on('response')
 def on_message(data):
-    print('Price Data ', data)
+    print('Respuesta:', data)
 
 
 sio.connect('http://localhost:5000')
 print('my sid is', sio.sid)
+sio.emit("message", {"message": "hola mundo", "user_name": "Chris"})

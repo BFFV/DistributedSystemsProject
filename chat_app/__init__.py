@@ -49,6 +49,6 @@ def create_app():
         print('received message: ' + str(json))
         message = Message(json["message"], json["user_name"])
         Message.insert(message)
-        socketio.emit('my response', json)
+        socketio.emit('response', json)
 
     return app
