@@ -2,6 +2,7 @@ from flask import Flask, render_template
 from flask_socketio import SocketIO
 from flask_cors import CORS
 from flask_migrate import Migrate
+from .models import db, Message
 
 
 migrate = Migrate()
@@ -27,7 +28,6 @@ def create_app():
 
     # App configuration
     socketio.init_app(app)
-    from .models import db, Message
     db.init_app(app)
     migrate.init_app(app, db)
     CORS(app)
@@ -36,19 +36,12 @@ def create_app():
     def sessions():
         return render_template('index.html')
 
-    @socketio.on('connect')
-    def on_connect():
-        print('Server received connection')
-
-    @socketio.on('my event')
-    def handle_event(data):
-        print('received message: ' + str(data))
-
     @socketio.on('message')
     def handle_message(json):
         print('received message: ' + str(json))
-        message = Message(json["message"], json["user_name"])
-        Message.insert(message)
-        socketio.emit('response', json)
+        #message = Message(json["message"], json["user_name"])
+        #Message.insert(message)
+        response = f'{json["user"]}: {json["text"]}'
+        socketio.emit('response', response)
 
     return app

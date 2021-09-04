@@ -1,11 +1,11 @@
 import socketio
 
-# standard Python
+# Socket IO client
 sio = socketio.Client()
 
 @sio.event
 def connect():
-    print("I'm connected!")
+    pass
     #sio.emit('login', {'userKey': 'streaming_api_key'})
     #sio.emit('message', {'data': 'User Connected'})
 
@@ -17,18 +17,17 @@ def connect_error():
 def message(data):
     print('I received a message!')
 
-@sio.on('handshake')
-def on_message(data):
-    print('HandShake', data)
-    sio.emit('symbolSub', {'symbol': 'USDJPY'})
-    sio.emit('symbolSub', {'symbol': 'GBPUSD'})
-    sio.emit('symbolSub', {'symbol': 'EURUSD'})
-
 @sio.on('response')
 def on_message(data):
-    print('Respuesta:', data)
+    print('\n' + data + '\n')
 
 
-sio.connect('http://localhost:5000')
-print('my sid is', sio.sid)
-sio.emit("message", {"message": "hola mundo", "user_name": "Chris"})
+# Run client
+if __name__ == '__main__':
+    sio.connect('http://127.0.0.1:5000')
+    try:
+        while True:
+            message = input()
+            sio.emit('message', {'text': message, 'user': 'Benja'})
+    except KeyboardInterrupt:
+        sio.disconnect()
