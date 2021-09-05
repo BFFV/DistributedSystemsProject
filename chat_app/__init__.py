@@ -31,11 +31,26 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
     CORS(app)
+    clients = 0
 
     @app.route('/')
     def sessions():
         return render_template('index.html')
 
+    @socketio.on("connect", namespace="/")
+    def connect():
+        # global variable as it needs to be shared
+        global clients
+        clients += 1
+        # emits a message with the user count anytime someone connects
+        socketio.emit("users", {"user_count": clients}, broadcast=True)
+
+    @socketio.on("disconnect", namespace="/")
+    def disconnect():
+        global clients
+        clients -= 1
+        socketio.emit("users", {"user_count": clients}, broadcast=True)
+        
     @socketio.on('message')
     def handle_message(json):
         print('received message: ' + str(json))
@@ -44,4 +59,13 @@ def create_app():
         response = f'{json["user"]}: {json["text"]}'
         socketio.emit('response', response)
 
+    @socketio.on('login')
+    def handle_login(json):
+        print('received login ' + str(json))
+        response = f'{json["userKey"]} just enter the Server'
+        socketio.emit('response', response)
+
     return app
+
+#if __name__ == '__main__':
+#    socketio.run(create_app())
