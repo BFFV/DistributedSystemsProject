@@ -37,7 +37,7 @@ def create_app():
     def sessions():
         return render_template('index.html')
 
-    @socketio.on("connect", namespace="/")
+    @socketio.on("connect", namespace="/connect")
     def connect():
         # global variable as it needs to be shared
         global clients
@@ -45,7 +45,7 @@ def create_app():
         # emits a message with the user count anytime someone connects
         socketio.emit("users", {"user_count": clients}, broadcast=True)
 
-    @socketio.on("disconnect", namespace="/")
+    @socketio.on("disconnect", namespace="/disconnect")
     def disconnect():
         global clients
         clients -= 1

@@ -2,7 +2,7 @@ Recomiendo usar virtualenv con Python 3.7.11
 
 Primera versión basada en https://codeburst.io/building-your-first-chat-application-using-flask-in-7-minutes-f98de4adfa5d
 
-Instalar paquetes necesarios con `pip install -r requirements`.
+Instalar paquetes necesarios con `pip install -r requirements.txt`.
 
 Correr para que flask reconozca app: `export FLASK_APP=chat_app`.
 
