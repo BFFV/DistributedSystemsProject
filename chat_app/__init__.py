@@ -14,6 +14,7 @@ db_password = 'postgres'
 db_url = 'localhost:5432'
 db_name = 'chat_db'
 
+global clients
 
 # Create app
 def create_app():
@@ -31,21 +32,23 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
     CORS(app)
-    clients = 0
 
     @app.route('/')
     def sessions():
         return render_template('index.html')
 
-    @socketio.on("connect", namespace="/connect")
+    @socketio.on('connect', namespace='/')
     def connect():
         # global variable as it needs to be shared
+        # print(json['data'])
+        print("entre aca")
         global clients
         clients += 1
+        print(clients)
         # emits a message with the user count anytime someone connects
         socketio.emit("users", {"user_count": clients}, broadcast=True)
 
-    @socketio.on("disconnect", namespace="/disconnect")
+    @socketio.on('disconnect', namespace="/disconnect")
     def disconnect():
         global clients
         clients -= 1
