@@ -1,33 +1,72 @@
-Recomiendo usar virtualenv con Python 3.7.11
+# Grupo 3 - Sistemas Distribuidos
+Tarea 1 - IIC2523
 
-Primera versión basada en https://codeburst.io/building-your-first-chat-application-using-flask-in-7-minutes-f98de4adfa5d
+***Integrantes:***
+- *Juan Aguillón* ([@vikingjuan](https://github.com/vikingjuan))
+- *Benjamín Farías* ([@BFFV](https://github.com/BFFV))
+- *Tomás García* ([@tgarcia5](https://github.com/tgarcia5))
+- *Francisco Guíñez* ([@fguinez](https://github.com/fguinez))
+- *Christian Klempau* ([@Christian-Klempau](https://github.com/Christian-Klempau))
+- *Amaranta Salas* ([@amyaranta](https://github.com/amyaranta))
 
-Instalar paquetes necesarios con `pip install -r requirements.txt`.
+***Profesor:** Javier Bustos*
+# Ejecución
 
-Correr para que flask reconozca app: `export FLASK_APP=chat_app`.
+- **Para correr el servidor**, ejecutar la siguiente línea dentro de la carpeta `chat_app`:
 
-Cambiar entre dev y production: `export FLASK_ENV=development/production`.
+```
+python main.py -N
+```
+Donde N corresponde a cualquier número entero positivo.
 
-Activar o desactivar el debug mode: `export FLASK_DEBUG=True/False`.
 
-Para crear un repositorio de migraciones usar `flask db init`
+También es equivalente ejecutar en la misma carpeta:
+```
+python __init__.py -N
+```
 
-Para generar una migración usar `flask db migrate`
+- **Para correr un cliente**, ejecutar la siguiente línea dentro de la carpeta `cliente`:
+```
+python main.py
+```
 
-Para aplicar migraciones usar `flask db upgrade`
+También es equivalente ejecutar en la misma carpeta:
+```
+python client.py
+```
 
-Cada vez que se cambia el modelo de la base de datos correr comandos 
+## Instalación
+
+Recomendamos usar virtualenv con Python 3.7.11
+
+*Esta primera versión está basada en [este](https://codeburst.io/building-your-first-chat-application-using-flask-in-7-minutes-f98de4adfa5d) artículo de Codeburst.*
+
+
+- Instalar paquetes necesarios con `pip install -r requirements.txt`.
+
+- Correr para que flask reconozca app: `export FLASK_APP=chat_app`.
+
+- Cambiar entre dev y production: `export FLASK_ENV=development/production`.
+
+- Activar o desactivar el debug mode: `export FLASK_DEBUG=True/False`.
+
+- Para crear un repositorio de migraciones usar `flask db init`
+
+- Para generar una migración usar `flask db migrate`
+
+- Para aplicar migraciones usar `flask db upgrade`
+
+- Cada vez que se cambia el modelo de la base de datos correr comandos 
 `migrate` y `upgrade`.
 
-Para sincronizar bd en otro sistema, refrescar carpeta de migraciones
+- Para sincronizar bd en otro sistema, refrescar carpeta de migraciones
 desde la fuente y correr el comando `upgrade`
 
-Para ver todos los comandos correr `flask db --help`. Para ayuda también puede 
+- Para ver todos los comandos correr `flask db --help`. Para ayuda también puede 
 revisar [aquí](https://flask-migrate.readthedocs.io/en/latest/)
 
-Finalmente correr aplicación con `flask run`.
 
-# Distributed Systems P1
+## Enunciado
 La Tarea 1 es bastante simple: debe crear un servidor y clientes de chat.
 
 Los clientes se conectan al servidor mediante una URL (definida por ustedes), todo lo que escriban debe ser visto por el resto de los clientes conectados a ese servidor.
