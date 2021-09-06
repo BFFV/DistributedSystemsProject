@@ -4,9 +4,9 @@ from flask_socketio import SocketIO
 from flask_cors import CORS
 from flask_migrate import Migrate
 from dataclasses import dataclass, field
-if sys.argv[1] == 'run':
+if sys.argv[-1] == 'run':                    # Si se ejecuta 'flask run'
     from .models import db, Message
-else:
+else:                                       # Si se ejecuta 'python3 __init__.py -n'
     from models import db, Message
 
 
@@ -98,19 +98,27 @@ def create_app():
     return app
 
 
+def notify_input_error():
+    print("🚨 Parámetros ingresados de forma incorrecta. Intenta nuevamente.")
+    print("   Prueba con la forma:")
+    print("       python __init__.py -[N]")
+    print("   Donde [N] corresponde a un número entero positivo.")
+
+
 
 
 if __name__ == '__main__':
-    
-    # TO-DO: Arreglar con -N con N = un int
-    if len(sys.argv) == 2:
-        N_CLIENTS_REQUIRED = int(sys.argv[-1][1:])
-    print(f"Esperando a que se conecten {N_CLIENTS_REQUIRED} clientes...")
-    socketio.run(create_app())
 
-    
-    
-    
-    
-    
+    if len(sys.argv) != 2:
+        notify_input_error()
+        exit()
+    elif len(sys.argv) == 2:
+        try:
+            N_CLIENTS_REQUIRED = abs(int(sys.argv[-1][1:]))
+        except ValueError:
+            notify_input_error()
+            exit()
+        print(f"⏳ Esperando a que se conecten {N_CLIENTS_REQUIRED} clientes...")
+
+    socketio.run(create_app())
     
