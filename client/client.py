@@ -28,7 +28,7 @@ def on_message(data):
 
 @sio.on('users')
 def on_message(data):
-    print('\n' + data['user_count'] + '\n')
+    print(f"\n Cantidad usuarios: {data['user_count']} \n")
 
 
 # Run client

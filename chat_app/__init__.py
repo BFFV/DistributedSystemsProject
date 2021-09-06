@@ -1,8 +1,14 @@
+import sys
 from flask import Flask, render_template
 from flask_socketio import SocketIO
 from flask_cors import CORS
 from flask_migrate import Migrate
-from .models import db, Message
+from dataclasses import dataclass, field
+if sys.argv[1] == 'run':
+    from .models import db, Message
+else:
+    from models import db, Message
+
 
 
 migrate = Migrate()
@@ -14,7 +20,23 @@ db_password = 'postgres'
 db_url = 'localhost:5432'
 db_name = 'chat_db'
 
-global clients
+N_CLIENTS_REQUIRED = 2
+# Variable global, contador de clientes
+clients = 0
+# Arreglo de instancias User
+users = list()
+# Set de usernames, usado para rápidamente verificar si hay nombres de usuarios repetidos
+usernames = set()
+
+@dataclass
+class User:
+    username: str
+    id_: int
+    # lista de instancias Message
+    messages: list = field(default_factory=list)
+
+def broadcast_past_messages():
+    pass
 
 # Create app
 def create_app():
@@ -39,16 +61,18 @@ def create_app():
 
     @socketio.on('connect', namespace='/')
     def connect():
-        # global variable as it needs to be shared
-        # print(json['data'])
-        print("entre aca")
-        global clients
+        global clients, N_CLIENTS_REQUIRED
         clients += 1
         print(clients)
         # emits a message with the user count anytime someone connects
         socketio.emit("users", {"user_count": clients}, broadcast=True)
+        # Lo dejaré hard-coded por el momento, se define globalmente
+        if clients == N_CLIENTS_REQUIRED:
+            broadcast_past_messages()
+        else:
+            pass
 
-    @socketio.on('disconnect', namespace="/disconnect")
+    @socketio.on('disconnect', namespace="/")
     def disconnect():
         global clients
         clients -= 1
@@ -57,10 +81,13 @@ def create_app():
     @socketio.on('message')
     def handle_message(json):
         print('received message: ' + str(json))
-        #message = Message(json["message"], json["user_name"])
-        #Message.insert(message)
+        message = Message(json["text"], json["user"])
+        # TODO: insertar mensaje en usuario correcto de lista userspodr
+
+        # Esto guarda el mensaje en PostgreSQL:
+        # Message.insert(message)
         response = f'{json["user"]}: {json["text"]}'
-        socketio.emit('response', response)
+        socketio.emit('response', response, broadcast=True)
 
     @socketio.on('login')
     def handle_login(json):
@@ -70,5 +97,20 @@ def create_app():
 
     return app
 
-#if __name__ == '__main__':
-#    socketio.run(create_app())
+
+
+
+if __name__ == '__main__':
+    
+    # TO-DO: Arreglar con -N con N = un int
+    if len(sys.argv) == 2:
+        N_CLIENTS_REQUIRED = int(sys.argv[-1][1:])
+    print(f"Esperando a que se conecten {N_CLIENTS_REQUIRED} clientes...")
+    socketio.run(create_app())
+
+    
+    
+    
+    
+    
+    
