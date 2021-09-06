@@ -9,6 +9,7 @@ app/uploads/
 # Editors/IDEs
 *.idea/
 *.vscode/
+*.code-workspace
 
 # C extensions
 *.so
@@ -169,13 +170,17 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+## MacOS
+
 # General
 .DS_Store
 .AppleDouble
 .LSOverride
+*.webloc
 
 # Icon must end with two \r
 Icon
+Icon*
 
 # Thumbnails
 ._*
