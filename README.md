@@ -10,9 +10,10 @@ Tarea 1 - IIC2523
 - *Amaranta Salas* ([@amyaranta](https://github.com/amyaranta))
 
 ***Profesor:** Javier Bustos*
-# Ejecución
+## Ejecución
 
-- **Para correr el servidor**, ejecutar la siguiente línea dentro de la carpeta `chat_app`:
+### Servidor
+**Para correr el servidor**, ejecutar la siguiente línea dentro de la carpeta `chat_app`:
 
 ```
 python main.py -N
@@ -25,7 +26,8 @@ También es equivalente ejecutar en la misma carpeta:
 python __init__.py -N
 ```
 
-- **Para correr un cliente**, ejecutar la siguiente línea dentro de la carpeta `cliente`:
+### Cliente
+**Para correr un cliente**, ejecutar la siguiente línea dentro de la carpeta `cliente`:
 ```
 python main.py
 ```
