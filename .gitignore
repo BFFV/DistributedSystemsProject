@@ -195,3 +195,7 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+
+# OTROS
+venv.txt
+venv/
