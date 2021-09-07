@@ -28,8 +28,13 @@ def on_message(data):
 
 @sio.on('users')
 def on_message(data):
-    print(f"\n Cantidad usuarios: {data['user_count']} \n")
+    print(f"\nCantidad usuarios: {data['user_count']} \n")
 
+def send_message(username):
+    message = input("")
+    sio.emit('message', {'text': message, 'user': username})
+
+    send_message(username)
 
 # Run client
 if __name__ == '__main__':
@@ -47,7 +52,6 @@ if __name__ == '__main__':
     # sio.
     try:
         while True:
-            message = input()
-            sio.emit('message', {'text': message, 'user': username})
+            send_message(username)
     except KeyboardInterrupt:
         sio.disconnect()

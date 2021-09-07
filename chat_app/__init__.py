@@ -27,6 +27,8 @@ clients = 0
 users = list()
 # Set de usernames, usado para rápidamente verificar si hay nombres de usuarios repetidos
 usernames = set()
+# Lista de mensajes (Message) que recibió el servidor
+messages = []
 
 @dataclass
 class User:
@@ -36,7 +38,13 @@ class User:
     messages: list = field(default_factory=list)
 
 def broadcast_past_messages():
-    pass
+    global messages
+
+    for message in messages:
+        response = f'{message.sent_by}: {message.text}'
+        socketio.emit('response', response, broadcast=True)
+
+    messages = []
 
 # Create app
 def create_app():
@@ -77,17 +85,20 @@ def create_app():
         global clients
         clients -= 1
         socketio.emit("users", {"user_count": clients}, broadcast=True)
-        
+
     @socketio.on('message')
     def handle_message(json):
         print('received message: ' + str(json))
         message = Message(json["text"], json["user"])
-        # TODO: insertar mensaje en usuario correcto de lista userspodr
+        # TODO: insertar mensaje en usuario correcto de lista users
 
         # Esto guarda el mensaje en PostgreSQL:
         # Message.insert(message)
-        response = f'{json["user"]}: {json["text"]}'
-        socketio.emit('response', response, broadcast=True)
+        if clients >= N_CLIENTS_REQUIRED:
+            response = f'{json["user"]}: {json["text"]}'
+            socketio.emit('response', response, broadcast=True)
+        else:
+            messages.append(message)
 
     @socketio.on('login')
     def handle_login(json):
