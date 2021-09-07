@@ -37,11 +37,18 @@ class User:
     # lista de instancias Message
     messages: list = field(default_factory=list)
 
+def craft_response_message(message):
+    return {
+        "user": message.sent_by, 
+        "text": message.text
+    }
+
 def broadcast_past_messages():
     global messages
 
     for message in messages:
-        response = f'{message.sent_by}: {message.text}'
+        # response = f'{message.sent_by}: {message.text}'
+        response = craft_response_message(message)
         socketio.emit('response', response, broadcast=True)
 
     messages = []
@@ -95,7 +102,8 @@ def create_app():
         # Esto guarda el mensaje en PostgreSQL:
         # Message.insert(message)
         if clients >= N_CLIENTS_REQUIRED:
-            response = f'{json["user"]}: {json["text"]}'
+            # response = f'{json["user"]}: {json["text"]}'
+            response = craft_response_message(message)
             socketio.emit('response', response, broadcast=True)
         else:
             messages.append(message)

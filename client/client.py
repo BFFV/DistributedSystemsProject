@@ -1,13 +1,20 @@
 import socketio
 import re
 
+
 # Socket IO client
 sio = socketio.Client()
 
 # @sio.event
 # def connect():
-#     #sio.emit('connect', {'data': 'trying to connect'})
+#     #sio.emit('
+# connect', {'data': 'trying to connect'})
 #     pass
+
+
+# from prettytable import PrettyTable
+# tabla_mensajes = PrettyTable()
+# tabla_mensajes.field_names = ["Usuario", "Mensaje"]
     
 @sio.event
 def login(username):
@@ -24,7 +31,9 @@ def message(data):
 
 @sio.on('response')
 def on_message(data):
-    print('\n' + data + '\n')
+    # tabla_mensajes.add_row([data["user"], data["text"]])
+    # print(tabla_mensajes)
+    print(f'\n{data["user"]}: {data["text"]} + \n')
 
 @sio.on('users')
 def on_message(data):
