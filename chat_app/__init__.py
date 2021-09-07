@@ -84,14 +84,18 @@ def create_app():
         # Lo dejaré hard-coded por el momento, se define globalmente
         if clients == N_CLIENTS_REQUIRED:
             broadcast_past_messages()
+            # Solución barata, así una vez conectados todos el N no afecta.
+            N_CLIENTS_REQUIRED = 0
         else:
             pass
 
     @socketio.on('disconnect', namespace="/")
     def disconnect():
-        global clients
+        global clients, messages
         clients -= 1
         socketio.emit("users", {"user_count": clients}, broadcast=True)
+        if clients == 0:
+            messages = []
 
     @socketio.on('message')
     def handle_message(json):
