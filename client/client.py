@@ -33,7 +33,7 @@ def message(data):
 def on_message(data):
     # tabla_mensajes.add_row([data["user"], data["text"]])
     # print(tabla_mensajes)
-    print(f'\n{data["user"]}: {data["text"]} + \n')
+    print(f'\n[{data["user"]}]: {data["text"]}\n')
 
 @sio.on('users')
 def on_message(data):
