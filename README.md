@@ -16,27 +16,30 @@ Tarea 1 - IIC2523
 **Para correr el servidor**, ejecutar la siguiente línea dentro de la carpeta `chat_app`:
 
 ```
-python main.py -N
+python __init__.py -N
 ```
+
 Donde N corresponde a cualquier número entero positivo.
 
 
-También es equivalente ejecutar en la misma carpeta:
+También es equivalente a ejecutar en la misma carpeta:
+
 ```
-python __init__.py -N
+python main.py -N
 ```
 
 ### Cliente
 **Para correr un cliente**, ejecutar la siguiente línea dentro de la carpeta `cliente`:
-```
-python main.py
-```
 
-También es equivalente ejecutar en la misma carpeta:
 ```
 python client.py
 ```
 
+También es equivalente a ejecutar en la misma carpeta:
+
+```
+python main.py
+```
 ## Instalación
 
 Recomendamos usar virtualenv con Python 3.7.11

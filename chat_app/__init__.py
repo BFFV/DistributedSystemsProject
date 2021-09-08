@@ -1,57 +1,45 @@
 import sys
-from flask import Flask, render_template
+from flask import Flask, request
 from flask_socketio import SocketIO
 from flask_cors import CORS
 from flask_migrate import Migrate
-from dataclasses import dataclass, field
-if sys.argv[-1] == 'run':                    # Si se ejecuta 'flask run'
+
+# Command line options
+if sys.argv[-1] == 'run':                   # If using 'flask run'
     from .models import db, Message
-else:                                       # Si se ejecuta 'python3 __init__.py -n'
+else:                                       # If using 'python3 __init__.py -n'
     from models import db, Message
 
-
-
+# Sockets & migrations
 migrate = Migrate()
 socketio = SocketIO()
 
-# Env vars
+# Env vars (for future improvements)
 db_user = 'postgres'
 db_password = 'postgres'
 db_url = 'localhost:5432'
 db_name = 'chat_db'
 
-N_CLIENTS_REQUIRED = 2
-# Variable global, contador de clientes
+# Client counter
+N_CLIENTS_REQUIRED = 1
 clients = 0
-# Arreglo de instancias User
-users = list()
-# Set de usernames, usado para rápidamente verificar si hay nombres de usuarios repetidos
+
+# Users
+users = dict()
+
+# Usernames set (for quickly checking existence)
 usernames = set()
-# Lista de mensajes (Message) que recibió el servidor
+
+# Messages
 messages = []
 
-@dataclass
-class User:
-    username: str
-    id_: int
-    # lista de instancias Message
-    messages: list = field(default_factory=list)
 
-def craft_response_message(message):
-    return {
-        "user": message.sent_by, 
-        "text": message.text
-    }
-
+# Broadcast queued messages
 def broadcast_past_messages():
     global messages
-
     for message in messages:
-        # response = f'{message.sent_by}: {message.text}'
-        response = craft_response_message(message)
-        socketio.emit('response', response, broadcast=True)
+        socketio.emit('response', message, broadcast=True)
 
-    messages = []
 
 # Create app
 def create_app():
@@ -70,78 +58,72 @@ def create_app():
     migrate.init_app(app, db)
     CORS(app)
 
-    @app.route('/')
-    def sessions():
-        return render_template('index.html')
-
-    @socketio.on('connect', namespace='/')
-    def connect():
-        global clients, N_CLIENTS_REQUIRED
-        clients += 1
-        print(clients)
-        # emits a message with the user count anytime someone connects
-        socketio.emit("users", {"user_count": clients}, broadcast=True)
-        # Lo dejaré hard-coded por el momento, se define globalmente
-        if clients == N_CLIENTS_REQUIRED:
-            broadcast_past_messages()
-            # Solución barata, así una vez conectados todos el N no afecta.
-            N_CLIENTS_REQUIRED = 0
-        else:
-            pass
-
-    @socketio.on('disconnect', namespace="/")
-    def disconnect():
-        global clients, messages
-        clients -= 1
-        socketio.emit("users", {"user_count": clients}, broadcast=True)
-        if clients == 0:
-            messages = []
-
+    # Listen for messages
     @socketio.on('message')
-    def handle_message(json):
-        print('received message: ' + str(json))
-        message = Message(json["text"], json["user"])
-        # TODO: insertar mensaje en usuario correcto de lista users
-
-        # Esto guarda el mensaje en PostgreSQL:
+    def handle_message(msg):
+        # Save message to PostgreSQL (maybe for future improvements):
+        # message = Message(msg, users[request.sid])
         # Message.insert(message)
+
+        message = f'{users[request.sid]}: {msg}'
+
+        # Broadcast message
         if clients >= N_CLIENTS_REQUIRED:
-            # response = f'{json["user"]}: {json["text"]}'
-            response = craft_response_message(message)
-            socketio.emit('response', response, broadcast=True)
+            socketio.emit('response', message, broadcast=True)
         else:
             messages.append(message)
 
+    # Process login for each user
     @socketio.on('login')
-    def handle_login(json):
-        print('received login ' + str(json))
-        response = f'{json["userKey"]} just enter the Server'
-        socketio.emit('response', response)
+    def handle_login(user):
+        global clients, N_CLIENTS_REQUIRED
+        # New user
+        if user not in usernames:
+            clients += 1
+            users[request.sid] = user
+            usernames.add(user)
+            msg = f'{user} has joined the chat!'
+            response = {'msg': msg, 'count': clients}
+            socketio.emit('users', response)
+            socketio.emit('accepted', room=request.sid)
+        else:  # Login failed
+            socketio.emit('denied', f'{user} is already in use!',
+                          room=request.sid)
+        # Check if N required clients have joined
+        if clients == N_CLIENTS_REQUIRED:
+            broadcast_past_messages()
+            N_CLIENTS_REQUIRED = -1  # Chat is permanent from now on
+
+    # User disconnects
+    @socketio.on('disconnect')
+    def disconnect():
+        global clients
+        username = users.pop(request.sid, False)
+        if username:
+            clients -= 1
+            usernames.remove(username)
+            msg = f'{username} has left the chat!'
+            response = {'msg': msg, 'count': max(clients, 0)}
+            socketio.emit('users', response)
 
     return app
 
 
+# Input error handling
 def notify_input_error():
-    print("🚨 Parámetros ingresados de forma incorrecta. Intenta nuevamente.")
-    print("   Prueba con la forma:")
-    print("       python __init__.py -[N]")
-    print("   Donde [N] corresponde a un número entero positivo.")
+    print("🚨 Invalid parameters!")
+    print("   Try with:")
+    print("       python __init__.py -[n]")
+    print("   Where [n] is a positive integer.")
 
 
-
-
+# Run server
 if __name__ == '__main__':
-
-    if len(sys.argv) != 2:
-        notify_input_error()
-        exit()
-    elif len(sys.argv) == 2:
+    if len(sys.argv) > 1:
         try:
-            N_CLIENTS_REQUIRED = abs(int(sys.argv[-1][1:]))
+            N_CLIENTS_REQUIRED = abs(int(sys.argv[1][1:]))
         except ValueError:
             notify_input_error()
             exit()
-        print(f"⏳ Esperando a que se conecten {N_CLIENTS_REQUIRED} clientes...")
-
+        print(f'⏳ Waiting for {N_CLIENTS_REQUIRED} clients to join...')
     socketio.run(create_app())
-    

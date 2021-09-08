@@ -1,66 +1,113 @@
 import socketio
-import re
+import sys
+from socketio import exceptions as exc
+from time import sleep
+from collections import deque
 
 
 # Socket IO client
 sio = socketio.Client()
+accepted = False
+active = True
 
-# @sio.event
-# def connect():
-#     #sio.emit('
-# connect', {'data': 'trying to connect'})
-#     pass
+# Chat window
+chat = deque(maxlen=10)
+count = 1
+event = ''
 
 
-# from prettytable import PrettyTable
-# tabla_mensajes = PrettyTable()
-# tabla_mensajes.field_names = ["Usuario", "Mensaje"]
-    
+# Print chat & events
+def print_state():
+    print(2 * '\n')
+    print(event)
+    print('------------------------------------')
+    print(f'Users Connected: {count}')
+    print('------------------------------------')
+    if not chat:
+        print('No messages!')
+    for msg in chat:
+        print(msg)
+    print('------------------------------------')
+    print('\n\n(your input)')
+
+
+# Connection error
 @sio.event
-def login(username):
-    sio.emit('login', {'userKey': 'streaming_api_key'})
-    sio.emit('message', {'data': 'User Connected'})
+def connect_error(msg):
+    print('Error connecting to the server!')
 
-@sio.event
-def connect_error():
-    print("The connection failed!")
 
-@sio.event
-def message(data):
-    print('I received a message!')
+# User login to the chat
+def user_login():
+    username = input('\nUsername: ')
+    print('')
+    sio.emit('login', username)
 
-@sio.on('response')
-def on_message(data):
-    # tabla_mensajes.add_row([data["user"], data["text"]])
-    # print(tabla_mensajes)
-    print(f'\n[{data["user"]}]: {data["text"]}\n')
 
+# Username is valid
+@sio.on('accepted')
+def login_success():
+    global accepted
+    accepted = True
+
+
+# Username is already in use
+@sio.on('denied')
+def login_failed(msg):
+    print(msg)
+    user_login()
+
+
+# Send message to chat
+def send_message():
+    global active
+    message = input(
+        '\n\nType your message (\':exit:\' to exit program):\n\n>> ')
+    message = message.strip()
+    if message == ':exit:':
+        active = False
+        return False
+    sio.emit('message', message)
+    return True
+
+
+# Update user count & show state messages
 @sio.on('users')
-def on_message(data):
-    print(f"\nCantidad usuarios: {data['user_count']} \n")
+def update_count(data):
+    global event, count
+    if active:
+        event = data['msg']
+        count = data['count']
+        print_state()
+        event = ''
 
-def send_message(username):
-    message = input("")
-    sio.emit('message', {'text': message, 'user': username})
 
-    send_message(username)
+# Show messages in chat
+@sio.on('response')
+def receive_message(msg):
+    if active:
+        chat.append('\n' + msg)
+        print_state()
+
 
 # Run client
 if __name__ == '__main__':
-    # try:
-    #     sio.connect('http://127.0.0.1:5000')
-    # except TypeError:
-    #     print("No se logro conectar al servidor")
-    # username = "user name"
-    # while not re.match("^[a-zA-Z0-9_.-]+$", username):
-    #     username = input("Ingrese su nombre de usuario: ")
-    #     if not re.match("^[a-zA-Z0-9_.-]+$", username):
-    #         print("Ingrese caracteres alfanumericos o _.-")
-    sio.connect('http://127.0.0.1:5000')
-    username = input('Username: ')
-    # sio.
+    uri = 'http://127.0.0.1:5000'
+    if len(sys.argv) > 1:
+        uri = sys.argv[1]
     try:
-        while True:
-            send_message(username)
+        sio.connect(uri)
+        user_login()
+        while not accepted:
+            pass
+        chatting = True
+        while chatting:
+            sleep(0.2)
+            chatting = send_message()
     except KeyboardInterrupt:
+        active = False
+    except exc.ConnectionError:
+        active = False
+    finally:
         sio.disconnect()
+        print('\nGoodbye!')
