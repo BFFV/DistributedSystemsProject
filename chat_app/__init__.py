@@ -90,7 +90,7 @@ def create_app():
             socketio.emit('denied', f'{user} is already in use!',
                           room=request.sid)
         # Check if N required clients have joined
-        if clients == N_CLIENTS_REQUIRED:
+        if clients >= N_CLIENTS_REQUIRED:
             broadcast_past_messages()
             N_CLIENTS_REQUIRED = -1  # Chat is permanent from now on
 
