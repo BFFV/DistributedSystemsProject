@@ -19,6 +19,7 @@ chat = deque()  # Messages (maxlen param for last X messages)
 print_lock = Lock()  # Protect the print_state function
 ask_input = False  # Check if user needs a reminder for the input
 new_user = True  # User just joined the server
+private_act = False  # Check if private messages are active
 
 # TODO: Avoid repeating input message
 
@@ -79,23 +80,31 @@ def send_message():
     # If ':private:' in message -> revisar si existe ese username
     if ':private:' in message:
     # Si existe, emit 'private' al server con el user de destino ya parseado
-        pass
-        # new_message = message.replace(":private:", "")
-        # user = 
-        # sio.emit('private', )
     # El server tiene el evento on.('private') que recibe el user y le tiene que devolver ip y port a este
+        pass
+        # user = message.replace(":private: ", "")
+        # sio.emit('private', user) 
     # Con el ip y port mandar el mensaje por p2p
+    if private_act:
+        pass
     ask_input = False
     sio.emit('message', message)
     return True
 
 
 # Update user count
-@sio.on('users')
+@sio.on('users_add')
 def update_users(data):
     global count, usernames
     count = data['count']
     usernames.add(data['user'])
+
+
+@sio.on('users_remove')
+def update_users(data):
+    global count, usernames
+    count = data['count']
+    usernames.remove(data['user'])
 
 
 # Show messages in chat
