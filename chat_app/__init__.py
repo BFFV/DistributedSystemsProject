@@ -115,7 +115,7 @@ def create_app():
         if username:
             clients -= 1
             usernames.remove(username)
-            socketio.emit('users_remove', {'count': clients, 'user': username})
+            socketio.emit('users_remove', {'count': clients, 'user': username}, broadcast=True, include_self=False)
             msg = f'{username} has left the chat!'
             if clients > N_CLIENTS_REQUIRED:
                 socketio.emit('response', msg)
