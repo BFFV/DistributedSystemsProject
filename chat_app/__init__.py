@@ -126,9 +126,10 @@ def create_app():
     def private(username):
         # ip_port = user_data[username]
         # if username in usernames:
-            # socketio.emit('')
+            # socketio.emit('connect_users', ip_port)
         # else:
-            # socketio.emit('')
+            # msg = f'{username} is not a valid user'
+            # socketio.emit('resend_name', msg)
         pass
 
     return app
