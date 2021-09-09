@@ -86,11 +86,18 @@ def send_message():
 
 
 # Update user count
-@sio.on('users')
+@sio.on('users_add')
 def update_users(data):
     global count, usernames
     count = data['count']
     usernames.add(data['user'])
+
+
+@sio.on('users_remove')
+def update_users(data):
+    global count, usernames
+    count = data['count']
+    usernames.remove(data['user'])
 
 
 # Show messages in chat
