@@ -91,7 +91,6 @@ def update_users(data):
     global count, usernames
     count = data['count']
     usernames.add(data['user'])
-    print(usernames)
 
 
 @sio.on('users_remove')
