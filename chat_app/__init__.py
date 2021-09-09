@@ -25,7 +25,8 @@ N_CLIENTS_REQUIRED = 1
 clients = 0
 
 # Users
-users = dict()
+users = dict()  # Key: socket ID, Value: Username
+user_data = dict()  # Key: Username, Value: IP/Port
 
 # Usernames set (for quickly checking existence)
 usernames = set()
@@ -35,10 +36,12 @@ messages = []
 
 
 # Broadcast queued messages
-def broadcast_past_messages():
+def broadcast_past_messages(sid=None):
     global messages
-    for message in messages:
-        socketio.emit('response', message, broadcast=True)
+    if sid is not None:  # Send messages to specific client
+        socketio.emit('msg_queue', messages, room=sid)
+    else:  # Send messages to everyone
+        socketio.emit('msg_queue', messages, broadcast=True)
 
 
 # Create app
@@ -66,12 +69,11 @@ def create_app():
         # Message.insert(message)
 
         message = f'{users[request.sid]}: {msg}'
+        messages.append(message)
 
         # Broadcast message
         if clients >= N_CLIENTS_REQUIRED:
             socketio.emit('response', message, broadcast=True)
-        else:
-            messages.append(message)
 
     # Process login for each user
     @socketio.on('login')
@@ -81,18 +83,26 @@ def create_app():
         if user not in usernames:
             clients += 1
             users[request.sid] = user
+            # user_data[user] = request.ip / port
             usernames.add(user)
-            msg = f'{user} has joined the chat!'
-            response = {'msg': msg, 'count': clients}
-            socketio.emit('users', response)
+            socketio.emit('users', {'count': clients, 'user': user})
             socketio.emit('accepted', room=request.sid)
         else:  # Login failed
             socketio.emit('denied', f'{user} is already in use!',
                           room=request.sid)
+            return
         # Check if N required clients have joined
-        if clients >= N_CLIENTS_REQUIRED:
+        join_msg = f'{user} has joined the chat!'
+        if clients == N_CLIENTS_REQUIRED:
+            messages.append(join_msg)
             broadcast_past_messages()
             N_CLIENTS_REQUIRED = -1  # Chat is permanent from now on
+        elif clients > N_CLIENTS_REQUIRED:
+            broadcast_past_messages(request.sid)
+            socketio.emit('response', join_msg)
+            messages.append(join_msg)
+        else:
+            messages.append(join_msg)
 
     # User disconnects
     @socketio.on('disconnect')
@@ -102,9 +112,13 @@ def create_app():
         if username:
             clients -= 1
             usernames.remove(username)
+            socketio.emit('users', max(clients, 0))
             msg = f'{username} has left the chat!'
-            response = {'msg': msg, 'count': max(clients, 0)}
-            socketio.emit('users', response)
+            if clients > N_CLIENTS_REQUIRED:
+                socketio.emit('response', msg)
+                messages.append(msg)
+            else:
+                messages.append(msg)
 
     return app
 
