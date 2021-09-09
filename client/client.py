@@ -77,7 +77,12 @@ def send_message():
         return False
     # TODO: Private p2p
     # If ':private:' in message -> revisar si existe ese username
+    if ':private:' in message:
     # Si existe, emit 'private' al server con el user de destino ya parseado
+        pass
+        # new_message = message.replace(":private:", "")
+        # user = 
+        # sio.emit('private', )
     # El server tiene el evento on.('private') que recibe el user y le tiene que devolver ip y port a este
     # Con el ip y port mandar el mensaje por p2p
     ask_input = False

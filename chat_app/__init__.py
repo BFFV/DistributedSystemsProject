@@ -120,6 +120,10 @@ def create_app():
             else:
                 messages.append(msg)
 
+    @socketio.on('private')
+    def private():
+        pass
+
     return app
 
 
