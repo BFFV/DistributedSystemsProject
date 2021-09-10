@@ -84,10 +84,11 @@ def create_app():
             clients += 1
             users[request.sid] = user
             # user_data[user] = request.ip / port
-            usernames.add(user)
-            socketio.emit('users_add', {'count': clients, 'user': user})
             for others in list(usernames):
-                socketio.emit('users_add', {'count': clients, 'user': others})
+                socketio.emit('users_add', {'count': clients, 'user': others}, room=request.sid)
+            usernames.add(user)
+            socketio.emit('users_add', {'count': clients, 'user': user}, broadcast=True, include_self=False)
+            
             socketio.emit('accepted', room=request.sid)
         else:  # Login failed
             socketio.emit('denied', f'{user} is already in use!',
@@ -114,7 +115,7 @@ def create_app():
         if username:
             clients -= 1
             usernames.remove(username)
-            socketio.emit('users_remove', {'count': clients, 'user': username})
+            socketio.emit('users_remove', {'count': clients, 'user': username}, broadcast=True, include_self=False)
             msg = f'{username} has left the chat!'
             if clients > N_CLIENTS_REQUIRED:
                 socketio.emit('response', msg)
