@@ -84,11 +84,11 @@ def create_app():
             clients += 1
             users[request.sid] = user
             # user_data[user] = request.ip / port
+            # TODO: send set instead of for loop
             for others in list(usernames):
                 socketio.emit('users_add', {'count': clients, 'user': others}, room=request.sid)
             usernames.add(user)
             socketio.emit('users_add', {'count': clients, 'user': user}, broadcast=True, include_self=False)
-            
             socketio.emit('accepted', room=request.sid)
         else:  # Login failed
             socketio.emit('denied', f'{user} is already in use!',
@@ -122,6 +122,16 @@ def create_app():
                 messages.append(msg)
             else:
                 messages.append(msg)
+
+    @socketio.on('private')
+    def private(username):
+        # ip_port = user_data[username]
+        # if username in usernames:
+            # socketio.emit('connect_users', ip_port)
+        # else:
+            # msg = f'{username} is not a valid user'
+            # socketio.emit('resend_name', msg)
+        pass
 
     return app
 

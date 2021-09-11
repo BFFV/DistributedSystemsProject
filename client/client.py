@@ -20,6 +20,9 @@ print_lock = Lock()  # Protect the print_state function
 ask_input = False  # Check if user needs a reminder for the input
 new_user = True  # User just joined the server
 
+private_act = False  # Check if private messages are active
+priv_chat = deque()  # Private Messages (maxlen param for last X messages)
+
 # TODO: Avoid repeating input message
 
 
@@ -77,11 +80,23 @@ def send_message():
         return False
     # TODO: Private p2p
     # If ':private:' in message -> revisar si existe ese username
+    if ':private:' in message and not private_act:
     # Si existe, emit 'private' al server con el user de destino ya parseado
     # El server tiene el evento on.('private') que recibe el user y le tiene que devolver ip y port a este
+        pass
+        # username = message.replace(":private: ", "")
+        # sio.emit('private', user)
+        # return
+    if message == ':exit_private:':
+        pass
+        # private_act = False
     # Con el ip y port mandar el mensaje por p2p
-    ask_input = False
-    sio.emit('message', message)
+    if private_act:
+        pass
+        # sio.emit('message', message) # Enviar mensaje al usuario
+    else: 
+        ask_input = False
+        sio.emit('message', message)
     return True
 
 
@@ -124,6 +139,33 @@ def receive_messages(msgs):
             print_state()
         print_lock.release()
         new_user = False
+
+
+# User from private message exists
+@sio.on('connect_users')
+def user_exists():
+    # TODO: Conectar con el socket del otro user
+    # private_act = True
+    pass
+
+
+# User from private message doesn't exists
+@sio.on('resend_name')
+def resend_user(msg):
+    # print(msg)
+    pass
+
+
+# Show private messages in chat
+@sio.on('priv_response')
+def receive_message(msg):
+    global ask_input
+    if accepted:
+        print_lock.acquire()
+        priv_chat.append('\n' + msg)
+        print_state()
+        print_lock.release()
+        ask_input = True
 
 
 # Run client
