@@ -77,23 +77,33 @@ def create_app():
 
     # Process login for each user
     @socketio.on('login')
-    def handle_login(user):
+    def handle_login(data):
         global clients, N_CLIENTS_REQUIRED
+        user = data['user']
+
+        # Invalid username
+        if (':' in user) or (' ' in user):
+            socketio.emit('denied', 'Invalid username!', room=request.sid)
+            return
+
         # New user
         if user not in usernames:
             clients += 1
             users[request.sid] = user
-            # TODO: user_data[user] = request.ip / port
+            user_data[user] = (
+                request.environ['REMOTE_ADDR'], data['port'], data['id'])
             socketio.emit('users_add', {
                 'count': clients, 'users': list(usernames)}, room=request.sid)
             usernames.add(user)
-            socketio.emit('users_add', {'count': clients, 'users': list(user)},
+            socketio.emit('users_add', {
+                'count': clients, 'users': [user]},
                           broadcast=True, include_self=False)
             socketio.emit('accepted', room=request.sid)
         else:  # Login failed
             socketio.emit('denied', f'{user} is already in use!',
                           room=request.sid)
             return
+
         # Check if N required clients have joined
         join_msg = f'{user} has joined the chat!'
         messages.append(join_msg)
@@ -113,7 +123,8 @@ def create_app():
         if username:
             clients -= 1
             usernames.remove(username)
-            socketio.emit('users_remove', {'count': clients, 'user': username},
+            socketio.emit('users_remove', {
+                'count': clients, 'user': username},
                           broadcast=True, include_self=False)
             msg = f'{username} has left the chat!'
             if clients > N_CLIENTS_REQUIRED:
@@ -124,9 +135,10 @@ def create_app():
 
     @socketio.on('private')
     def private(username):
-        # ip_port = user_data[username]
-        # socketio.emit('send_private_msg', ip_port, room=request.sid)
-        pass
+        ip, port, node_id = user_data[username]
+        socketio.emit('send_private_msg', {
+            'ip': ip, 'port': port, 'id': node_id,
+            'origin': users[request.sid]}, room=request.sid)
 
     return app
 

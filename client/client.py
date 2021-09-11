@@ -1,5 +1,6 @@
 import socketio
 import sys
+import p2p
 from socketio import exceptions as exc
 from collections import deque
 from threading import Lock
@@ -17,6 +18,13 @@ usernames = set()  # Usernames (for private messages)
 chat = deque()  # Messages (maxlen param for last X messages)
 print_lock = Lock()  # Protect the print_state function
 chat_is_active = False  # Check if chat is active (N users required)
+ask_input = '**Special Commands: [":exit:"-> exit program] ' \
+            '[":private: USER MSG" -> send MSG to USER in private]**\n' \
+            'Type your message:\n'
+
+# Private message
+private_ready = True  # Protect current private message until p2p is ready
+private_msg = ''  # Current private message
 
 
 # Print chat & events
@@ -31,7 +39,7 @@ def print_state():
     print('\n' + 100 * '*')
     print(f'Users Connected: {count}')
     print(100 * '*')
-    print('\nType your message (\':exit:\' to exit program):\n')
+    print('\n' + ask_input)
 
 
 # Connection error
@@ -42,9 +50,10 @@ def connect_error(msg):
 
 # User login to the chat
 def user_login():
-    username = input('\nUsername: ')
+    username = input('\nUsername (no spaces or ":" allowed): ')
     print('')
-    sio.emit('login', username)
+    sio.emit('login', {
+        'user': username, 'port': p2p_node.port, 'id': p2p_node.id})
 
 
 # Username is valid
@@ -63,9 +72,9 @@ def login_failed(msg):
 
 # Send message to chat
 def send_message():
-    global accepted
+    global accepted, private_msg, private_ready
     if not chat_is_active:
-        print('Type your message (\':exit:\' to exit program):\n')
+        print(ask_input)
     message = input()
     print('')
     message = message.strip()
@@ -73,10 +82,23 @@ def send_message():
         accepted = False
         return False
     if message[:9] == ':private:':
-        # message split to check username and non empty msg
-        # if correct, emit private to server
-        # else return
-        pass
+        msg_args = message.split()
+        if len(msg_args) < 3:
+            print('Invalid format for private message!')
+            print('\n' + ask_input)
+            return True
+        username = msg_args[1]
+        if username not in usernames:
+            print('Invalid username for private message!')
+            print('\n' + ask_input)
+            return True
+        while not private_ready:
+            pass
+        private_msg = ' '.join(msg_args[2:])
+        private_ready = False
+        sio.emit('private', username)
+        print('Private message sent successfully!')
+        print('\n' + ask_input)
     else:
         sio.emit('message', message)
     return True
@@ -125,15 +147,33 @@ def receive_messages(msgs):
 # Send private message via p2p
 @sio.on('send_private_msg')
 def send_private_message(data):
-    # TODO: p2p
-    # connect to peer
-    # send message
-    # disconnect from peer
-    pass
+    global private_ready
+    peer = None
+    for node in p2p_node.nodes_outbound:
+        if node.host == data['ip'] and node.port == data['port']:
+            peer = node
+    for node in p2p_node.nodes_inbound:
+        if node.host == data['ip'] and node.id == data['id']:
+            peer = node
+    if not peer:
+        p2p.connect(p2p_node, data['ip'], data['port'])
+        peer = p2p_node.nodes_outbound[-1]
+    p2p_node.send_to_node(peer, f'(PRIVATE) {data["origin"]}: {private_msg}')
+    private_ready = True
+
+
+# Callback function for private messaging
+def private_event(event, this, other, data):
+    if event == 'node_message':
+        print_lock.acquire()
+        chat.append('\n' + data)
+        print_state()
+        print_lock.release()
 
 
 # Run client
 if __name__ == '__main__':
+    p2p_node = p2p.init_p2p(private_event)
     uri = 'http://127.0.0.1:5000'
     if len(sys.argv) > 1:
         uri = sys.argv[1]
@@ -151,6 +191,8 @@ if __name__ == '__main__':
         accepted = False
     finally:
         sio.disconnect()
+        p2p_node.stop()
         print_lock.acquire()
         print('Goodbye!\n')
+        print('Waiting for connections to close...')
         print_lock.release()
