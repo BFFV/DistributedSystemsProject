@@ -180,7 +180,7 @@ if __name__ == '__main__':
             pass
         chatting = True
         while chatting:
-            sleep(0.2)
+            sleep(0.3)
             chatting = send_message()
     except KeyboardInterrupt:
         accepted = False
