@@ -19,6 +19,7 @@ itsdangerous==2.0.1
 Jinja2==3.0.1
 Mako==1.1.5
 MarkupSafe==2.0.1
+p2pnetwork==1.1
 psycopg2-binary==2.9.1
 python-engineio==4.2.1
 python-socketio==5.4.0

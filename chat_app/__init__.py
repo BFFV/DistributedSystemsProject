@@ -5,16 +5,16 @@ from flask_cors import CORS
 from flask_migrate import Migrate
 
 # Command line options
-if sys.argv[-1] == 'run':                   # If using 'flask run'
+if sys.argv[-1] == 'run':  # If using 'flask run'
     from .models import db, Message
-else:                                       # If using 'python3 __init__.py -n'
+else:                      # If using 'python3 __init__.py -n'
     from models import db, Message
 
 # Sockets & migrations
 migrate = Migrate()
 socketio = SocketIO()
 
-# Env vars (for future improvements)
+# Env vars (for future improvements in storage)
 db_user = 'postgres'
 db_password = 'postgres'
 db_url = 'localhost:5432'
@@ -77,35 +77,43 @@ def create_app():
 
     # Process login for each user
     @socketio.on('login')
-    def handle_login(user):
+    def handle_login(data):
         global clients, N_CLIENTS_REQUIRED
+        user = data['user']
+
+        # Invalid username
+        if (':' in user) or (' ' in user):
+            socketio.emit('denied', 'Invalid username!', room=request.sid)
+            return
+
         # New user
         if user not in usernames:
             clients += 1
             users[request.sid] = user
-            # user_data[user] = request.ip / port
-            # TODO: send set instead of for loop
-            for others in list(usernames):
-                socketio.emit('users_add', {'count': clients, 'user': others}, room=request.sid)
+            user_data[user] = (
+                request.environ['REMOTE_ADDR'], data['port'], data['id'])
+            socketio.emit('users_add', {
+                'count': clients, 'users': list(usernames)}, room=request.sid)
             usernames.add(user)
-            socketio.emit('users_add', {'count': clients, 'user': user}, broadcast=True, include_self=False)
+            socketio.emit('users_add', {
+                'count': clients, 'users': [user]},
+                          broadcast=True, include_self=False)
             socketio.emit('accepted', room=request.sid)
         else:  # Login failed
             socketio.emit('denied', f'{user} is already in use!',
                           room=request.sid)
             return
+
         # Check if N required clients have joined
         join_msg = f'{user} has joined the chat!'
+        messages.append(join_msg)
         if clients == N_CLIENTS_REQUIRED:
-            messages.append(join_msg)
             broadcast_past_messages()
             N_CLIENTS_REQUIRED = -1  # Chat is permanent from now on
         elif clients > N_CLIENTS_REQUIRED:
             broadcast_past_messages(request.sid)
-            socketio.emit('response', join_msg)
-            messages.append(join_msg)
-        else:
-            messages.append(join_msg)
+            socketio.emit('response', join_msg, broadcast=True,
+                          include_self=False)
 
     # User disconnects
     @socketio.on('disconnect')
@@ -115,7 +123,9 @@ def create_app():
         if username:
             clients -= 1
             usernames.remove(username)
-            socketio.emit('users_remove', {'count': clients, 'user': username}, broadcast=True, include_self=False)
+            socketio.emit('users_remove', {
+                'count': clients, 'user': username},
+                          broadcast=True, include_self=False)
             msg = f'{username} has left the chat!'
             if clients > N_CLIENTS_REQUIRED:
                 socketio.emit('response', msg)
@@ -125,13 +135,10 @@ def create_app():
 
     @socketio.on('private')
     def private(username):
-        # ip_port = user_data[username]
-        # if username in usernames:
-            # socketio.emit('connect_users', ip_port)
-        # else:
-            # msg = f'{username} is not a valid user'
-            # socketio.emit('resend_name', msg)
-        pass
+        ip, port, node_id = user_data[username]
+        socketio.emit('send_private_msg', {
+            'ip': ip, 'port': port, 'id': node_id,
+            'origin': users[request.sid]}, room=request.sid)
 
     return app
 
