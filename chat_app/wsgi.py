@@ -2,7 +2,7 @@ from flask import Flask, request
 from flask_socketio import SocketIO
 from flask_cors import CORS
 from flask_migrate import Migrate
-from models import db
+from .models import db
 
 
 # Sockets & migrations
