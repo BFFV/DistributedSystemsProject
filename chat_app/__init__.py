@@ -4,11 +4,12 @@ from flask_socketio import SocketIO
 from flask_cors import CORS
 from flask_migrate import Migrate
 
+
 # Command line options
-if sys.argv[-1] == 'run':  # If using 'flask run'
-    from .models import db, Message
-else:                      # If using 'python3 __init__.py -n'
+if __name__ == '__main__':  # If using 'flask run'
     from models import db, Message
+else:                      # If using 'python3 __init__.py -n'
+    from .models import db, Message
 
 # Sockets & migrations
 migrate = Migrate()
