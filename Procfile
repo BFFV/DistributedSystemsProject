@@ -1,1 +1,1 @@
-web: gunicorn --worker-class eventlet -w 1 chat_app.__init__:app
+web: gunicorn --worker-class eventlet -w 1 chat_app.wsgi:app

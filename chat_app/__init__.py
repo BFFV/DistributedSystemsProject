@@ -6,10 +6,10 @@ from flask_migrate import Migrate
 
 
 # Command line options
-if __name__ == '__main__':  # If using 'flask run'
-    from models import db, Message
-else:                      # If using 'python3 __init__.py -n'
+if sys.argv[-1] == 'run':  # If using 'flask run'
     from .models import db, Message
+else:                      # If using 'python3 __init__.py -n'
+    from models import db, Message
 
 # Sockets & migrations
 migrate = Migrate()
@@ -161,5 +161,4 @@ if __name__ == '__main__':
             notify_input_error()
             exit()
         print(f'⏳ Waiting for {N_CLIENTS_REQUIRED} clients to join...')
-    app = create_app()
-    socketio.run(app)
+    socketio.run(create_app())
