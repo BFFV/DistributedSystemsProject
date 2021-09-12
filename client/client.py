@@ -29,6 +29,7 @@ private_msg = ''  # Current private message
 
 # Print chat & events
 def print_state():
+    print('\n')
     print(100 * '*')
     print(46 * ' ' + 'CHAT')
     print(100 * '*')
@@ -156,6 +157,7 @@ def send_private_message(data):
         if node.host == data['ip'] and node.id == data['id']:
             peer = node
     if not peer:
+        # TODO: in production this is not working, it fails to connect
         p2p.connect(p2p_node, data['ip'], data['port'])
         peer = p2p_node.nodes_outbound[-1]
     p2p_node.send_to_node(peer, f'(PRIVATE) {data["origin"]}: {private_msg}')
