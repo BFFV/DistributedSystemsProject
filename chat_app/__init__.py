@@ -21,7 +21,7 @@ db_url = 'localhost:5432'
 db_name = 'chat_db'
 
 # Client counter
-N_CLIENTS_REQUIRED = 1
+N_CLIENTS_REQUIRED = 2
 clients = 0
 
 # Users
