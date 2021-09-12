@@ -6,7 +6,7 @@ from flask_migrate import Migrate
 
 
 # Command line options
-if sys.argv[-1] == 'run':  # If using 'flask run'
+if '__init__.py' not in sys.argv:  # If using 'flask run'
     from .models import db, Message
 else:                      # If using 'python3 __init__.py -n'
     from models import db, Message
