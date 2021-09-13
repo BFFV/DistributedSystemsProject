@@ -47,6 +47,7 @@ def print_state():
 @sio.event
 def connect_error(msg):
     print(f'\nError connecting to the server!\nDetails: {msg}')
+    sys.exit()
 
 
 # User login to the chat
