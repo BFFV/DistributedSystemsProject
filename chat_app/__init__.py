@@ -21,29 +21,54 @@ db_password = 'postgres'
 db_url = 'localhost:5432'
 db_name = 'chat_db'
 
-# Client counter
-N_CLIENTS_REQUIRED = 2
-clients = 0
 
-# Users
-users = dict()  # Key: socket ID, Value: Username
-user_data = dict()  # Key: Username, Value: IP/Port
+class GlobalParams:
+    def __init__(self) -> None:
+        self.set_params()
 
-# Usernames set (for quickly checking existence)
-usernames = set()
+    def set_params(self, N_CLIENTS_REQUIRED=2):
+        # Client counter
+        self.N_CLIENTS_REQUIRED = N_CLIENTS_REQUIRED
+        self.clients = 0
 
-# Messages
-messages = []
+        # Users
+        self.users = dict()  # Key: socket ID, Value: Username
+        self.user_data = dict()  # Key: Username, Value: IP/Port
+
+        # Usernames set (for quickly checking existence)
+        self.usernames = set()
+
+        # Messages
+        self.messages = []
+
+
+gb = GlobalParams()
 
 
 # Broadcast queued messages
 def broadcast_past_messages(sid=None):
-    global messages
     if sid is not None:  # Send messages to specific client
-        socketio.emit('msg_queue', messages, room=sid)
+        socketio.emit('msg_queue', gb.messages, room=sid)
     else:  # Send messages to everyone
-        socketio.emit('msg_queue', messages, broadcast=True)
+        socketio.emit('msg_queue', gb.messages, broadcast=True)
 
+
+def command_handler(msg):
+    # $reset -n --> reinicia usuarios, mensajes y N necesario.
+    if "$reset" in msg:
+        try:
+            msg = msg.strip().split(" ")
+            new_N = int(msg[1][1:])
+            reset_server(new_N)
+        except (IndexError, ValueError):
+            print("Comando no cumple formato: $reset -N")
+    else:
+        print("Comando no encontrado")
+
+
+def reset_server(new_N):
+    gb.reset_server(N_CLIENTS_REQUIRED=new_N)
+    socketio.run(create_app())
 
 # Create app
 def create_app():
@@ -62,6 +87,7 @@ def create_app():
     migrate.init_app(app, db)
     CORS(app)
 
+
     # Listen for messages
     @socketio.on('message')
     def handle_message(msg):
@@ -69,17 +95,19 @@ def create_app():
         # message = Message(msg, users[request.sid])
         # Message.insert(message)
 
-        message = f'{users[request.sid]}: {msg}'
-        messages.append(message)
+        message = f'{gb.users[request.sid]}: {msg}'
+        if msg[0] == "$":
+            command_handler(msg)
+        else:
+            gb.messages.append(message)
 
         # Broadcast message
-        if clients >= N_CLIENTS_REQUIRED:
+        if gb.clients >= N_CLIENTS_REQUIRED:
             socketio.emit('response', message, broadcast=True)
 
     # Process login for each user
     @socketio.on('login')
     def handle_login(data):
-        global clients, N_CLIENTS_REQUIRED
         user = data['user']
 
         # Invalid username
@@ -88,16 +116,16 @@ def create_app():
             return
 
         # New user
-        if user not in usernames:
-            clients += 1
-            users[request.sid] = user
-            user_data[user] = (
+        if user not in gb.usernames:
+            gb.clients += 1
+            gb.users[request.sid] = user
+            gb.user_data[user] = (
                 request.environ['REMOTE_ADDR'], data['port'], data['id'])
             socketio.emit('users_add', {
-                'count': clients, 'users': list(usernames)}, room=request.sid)
-            usernames.add(user)
+                'count': gb.clients, 'users': list(gb.usernames)}, room=request.sid)
+            gb.usernames.add(user)
             socketio.emit('users_add', {
-                'count': clients, 'users': [user]},
+                'count': gb.clients, 'users': [user]},
                           broadcast=True, include_self=False)
             socketio.emit('accepted', room=request.sid)
         else:  # Login failed
@@ -107,11 +135,11 @@ def create_app():
 
         # Check if N required clients have joined
         join_msg = f'{user} has joined the chat!'
-        messages.append(join_msg)
-        if clients == N_CLIENTS_REQUIRED:
+        gb.messages.append(join_msg)
+        if gb.clients == gb.N_CLIENTS_REQUIRED:
             broadcast_past_messages()
-            N_CLIENTS_REQUIRED = -1  # Chat is permanent from now on
-        elif clients > N_CLIENTS_REQUIRED:
+            gb.N_CLIENTS_REQUIRED = -1  # Chat is permanent from now on
+        elif gb.clients > gb.N_CLIENTS_REQUIRED:
             broadcast_past_messages(request.sid)
             socketio.emit('response', join_msg, broadcast=True,
                           include_self=False)
@@ -120,26 +148,26 @@ def create_app():
     @socketio.on('disconnect')
     def disconnect():
         global clients
-        username = users.pop(request.sid, False)
+        username = gb.users.pop(request.sid, False)
         if username:
-            clients -= 1
-            usernames.remove(username)
+            gb.clients -= 1
+            gb.usernames.remove(username)
             socketio.emit('users_remove', {
-                'count': clients, 'user': username},
+                'count': gb.clients, 'user': username},
                           broadcast=True, include_self=False)
             msg = f'{username} has left the chat!'
-            if clients > N_CLIENTS_REQUIRED:
+            if gb.clients > N_CLIENTS_REQUIRED:
                 socketio.emit('response', msg)
-                messages.append(msg)
+                gb.messages.append(msg)
             else:
-                messages.append(msg)
+                gb.messages.append(msg)
 
     @socketio.on('private')
     def private(username):
-        ip, port, node_id = user_data[username]
+        ip, port, node_id = gb.user_data[username]
         socketio.emit('send_private_msg', {
             'ip': ip, 'port': port, 'id': node_id,
-            'origin': users[request.sid]}, room=request.sid)
+            'origin': gb.users[request.sid]}, room=request.sid)
 
     return app
 
