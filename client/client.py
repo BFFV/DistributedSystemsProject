@@ -58,6 +58,17 @@ def user_login():
         'user': username, 'port': p2p_node.port, 'id': p2p_node.id})
 
 
+@sio.on('graceful_disconnect')
+def graceful_disconnect():
+    print("Gracefully closing client due to reset!")
+    sio.disconnect()
+    p2p_node.stop()
+    print_lock.acquire()
+    print('Goodbye!\n')
+    print('Waiting for connections to close...')
+    print_lock.release()
+    raise KeyboardInterrupt
+
 # Username is valid
 @sio.on('accepted')
 def login_success():
@@ -193,9 +204,4 @@ if __name__ == '__main__':
     except exc.ConnectionError:
         accepted = False
     finally:
-        sio.disconnect()
-        p2p_node.stop()
-        print_lock.acquire()
-        print('Goodbye!\n')
-        print('Waiting for connections to close...')
-        print_lock.release()
+        graceful_disconnect()
