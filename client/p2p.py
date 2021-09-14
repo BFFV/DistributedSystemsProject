@@ -2,6 +2,7 @@ from p2pnetwork.node import Node
 from socket import socket, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR
 
 
+# Peer to Peer nodes
 class P2PNode(Node):
 
     # Same as Node class
@@ -29,11 +30,27 @@ def get_free_port():
 
 # Initialize p2p node for a client
 def init_p2p(callback):
-    node = P2PNode('127.0.0.1', get_free_port(), callback=callback)
+    ipaddr = '127.0.0.1'
+    port = get_free_port()
+    node = P2PNode(ipaddr, port, callback=callback)
     node.start()
     return node
 
 
 # Connect p2p node with a peer
 def connect(node, dest_ip, dest_port):
+    # TODO: check connection
     node.connect_with_node(dest_ip, dest_port)
+    print(f'\n👀 Peer2Peer connection with: {dest_ip}:{dest_port}\n')
+
+
+# Get connected node if it exists
+def get_peer(node, data):
+    peer = None
+    for n in node.nodes_outbound:
+        if n.host == data['ip'] and n.port == data['port']:
+            peer = n
+    for n in node.nodes_inbound:
+        if n.host == data['ip'] and n.id == data['id']:
+            peer = n
+    return peer
