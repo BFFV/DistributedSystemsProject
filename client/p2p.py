@@ -1,5 +1,6 @@
 from p2pnetwork.node import Node
 from socket import socket, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR
+import socket
 
 
 class P2PNode(Node):
@@ -17,6 +18,14 @@ class P2PNode(Node):
         self.sock.settimeout(10.0)
         self.sock.listen(1)
 
+# Get ip of this machine
+def get_my_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))
+    ip = s.getsockname()[0]
+    s.close()
+    return ip
+
 
 # Get a free port in this machine
 def get_free_port():
@@ -29,11 +38,17 @@ def get_free_port():
 
 # Initialize p2p node for a client
 def init_p2p(callback):
-    node = P2PNode('127.0.0.1', get_free_port(), callback=callback)
+    ipaddr = '127.0.0.1'
+    # BUG: p2p no funciona desde diferentes computadores
+    #ipaddr = get_my_ip()   # Puede que esta línea solucione el problema, falta probarlo
+    port = get_free_port()
+    node = P2PNode(ipaddr, port, callback=callback)
+    print(f"👀 Tu dirección es {ipaddr}:{port}")
     node.start()
     return node
 
 
 # Connect p2p node with a peer
 def connect(node, dest_ip, dest_port):
+    print(f"👀 Conectando con {dest_ip}:{dest_port}")
     node.connect_with_node(dest_ip, dest_port)
