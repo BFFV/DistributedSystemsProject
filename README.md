@@ -13,12 +13,26 @@ Tarea 1 - IIC2523
 
 **URI Producción:** https://pychat-io.herokuapp.com/
 
-## Ejecución
+## Instrucciones de uso
+### Instalación
 
-## Enunciado
+- Recomendamos usar virtualenv con Python 3.7+. De no estar instalado en su enterno de trabajo, debe instalar virtualenv (`pip3 install virtualenv`).
+
+- En la carpeta raíz del repositorio, ejecutar la siguiente línea para crear el ambiente virtual:
+```
+virtualenv venv
+```
+
+- Luego, deberás ejecutar esta línea cada vez que quieras usar el ambiente virtual:
+  ```
+  source venv/bin/activate
+  ```
+  En tu terminal debería aparecer un indicativo `(venv)`, el cual te informa que ya estás dentro del ambiente virtual.
+
+- Instalar paquetes necesarios con `pip install -r requirements.txt` (este paso solo es necesario la primera vez).
 
 
-### Servidor
+### Servidor (en local)
 **Para correr el servidor**, ejecutar la siguiente línea dentro de la carpeta `chat_app`:
 
 ```
@@ -33,6 +47,8 @@ También es equivalente a ejecutar en la misma carpeta:
 ```
 python main.py -N
 ```
+
+### Servidor (en Heroku)
 
 ### Cliente
 **Para correr un cliente**, ejecutar la siguiente línea dentro de la carpeta `cliente`:
@@ -50,7 +66,9 @@ También es equivalente a ejecutar en la misma carpeta:
 python main.py URI
 ```
 
-## Instalación
+## Instalación (old 🚨)
+
+❗️❗️❗️ _Esta sección de instalación es antigual, debe ser borrada antes de la entrega final ❗️❗️❗️_
 
 Recomendamos usar virtualenv con Python 3.7+
 
