@@ -67,8 +67,10 @@ def command_handler(msg):
 
 
 def reset_server(new_N):
-    gb.reset_server(N_CLIENTS_REQUIRED=new_N)
-    socketio.run(create_app())
+    print(f"Resetting server with N={new_N} users required.")
+    gb.set_params(N_CLIENTS_REQUIRED=new_N)
+    socketio.emit('graceful_disconnect', broadcast=True)
+    # socketio.run(create_app())
 
 # Create app
 def create_app():
