@@ -16,24 +16,27 @@ Tarea 1 - IIC2523
 ## Instrucciones de uso
 ### Instalación
 
-- Recomendamos usar virtualenv con Python 3.7+. De no estar instalado en su enterno de trabajo, debe instalar virtualenv (`pip3 install virtualenv`).
+- Recomendamos usar **virtualenv** con Python 3.7+. De no estar instalado en su entorno de trabajo, debe instalar virtualenv (`pip3 install virtualenv`).
 
-- En la carpeta raíz del repositorio, ejecutar la siguiente línea para crear el ambiente virtual:
+- En la carpeta raíz del repositorio, ejecutar la siguiente línea para crear el entorno virtual:
+
 ```
 virtualenv venv
 ```
 
-- Luego, deberás ejecutar esta línea cada vez que quieras usar el ambiente virtual:
+- Luego, deberás ejecutar la siguiente línea cada vez que quieras entrar al entorno virtual:
+
   ```
   source venv/bin/activate
   ```
-  En tu terminal debería aparecer un indicativo `(venv)`, el cual te informa que ya estás dentro del ambiente virtual.
+  
+- En tu terminal debería aparecer un indicativo `(venv)`, el cual te informa que ya estás dentro del entorno virtual.
 
-- Instalar paquetes necesarios con `pip install -r requirements.txt` (este paso solo es necesario la primera vez).
+- Finalmente, instalar los paquetes necesarios con `pip install -r requirements.txt` (este paso solo es necesario la primera vez).
 
+### Servidor (versión local)
 
-### Servidor (en local)
-**Para correr el servidor**, ejecutar la siguiente línea dentro de la carpeta `chat_app`:
+**Para correr el servidor localmente**, ejecutar la siguiente línea dentro de la carpeta `chat_app`:
 
 ```
 python __init__.py -N
@@ -41,16 +44,18 @@ python __init__.py -N
 
 Donde N corresponde a cualquier número entero positivo.
 
-
 También es equivalente a ejecutar en la misma carpeta:
 
 ```
 python main.py -N
 ```
 
-### Servidor (en Heroku)
+### Servidor (versión producción)
+
+La versión de producción del servidor está en https://pychat-io.herokuapp.com/.
 
 ### Cliente
+
 **Para correr un cliente**, ejecutar la siguiente línea dentro de la carpeta `cliente`:
 
 ```
@@ -66,12 +71,19 @@ También es equivalente a ejecutar en la misma carpeta:
 python main.py URI
 ```
 
-## Suposiciones
+## Consideraciones
 
-- Cuando el número de usuarios conectados pasa de ser mayor a N a ser menor a N, nadie ve ningún mensaje hasta que vuelvan a conectarse N usuarios.
+- Es posible enviar mensajes de cualquier tipo antes de que se unan los primeros N usuarios,
+ pero no se podrán ver hasta que el chat se active.
+
+- Cuando el número de usuarios conectados alcance el valor N, el chat quedará activado permanentemente,
+a menos que se utilice el comando `$reset -N` que permite volver a fijar un valor de N y reiniciar todo.
+
+- Los comandos especiales ``(exit, private, reset)`` son indicados dentro de la interfaz del cliente.
+
 ## Instalación (old 🚨)
 
-❗️❗️❗️ _Esta sección de instalación es antigual, debe ser borrada antes de la entrega final ❗️❗️❗️_
+❗️❗️❗️ _Esta sección de instalación es antigua, debe ser borrada antes de la entrega final ❗️❗️❗️_
 
 Recomendamos usar virtualenv con Python 3.7+
 

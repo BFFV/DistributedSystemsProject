@@ -12,15 +12,18 @@ accepted = False
 
 # Users
 count = 1  # User count
-usernames = set()  # Usernames (for private messages)
 
 # Chat window
 chat = deque()  # Messages (maxlen param for last X messages)
 print_lock = Lock()  # Protect the print_state function
 chat_is_active = False  # Check if chat is active (N users required)
-ask_input = '**Special Commands: [":exit:"-> exit program] ' \
-            '[":private: USER MSG" -> send MSG to USER in private]**\n' \
-            'Type your message:\n'
+ask_input = f'{54 * "-"}\nSpecial Commands:{36 * " "}|\n{53 * " "}|\n' \
+            f'"$exit" -> exit program{30 * " "}|\n' \
+            f'"$private USER MSG" -> send MSG to USER in private' \
+            f'{3 * " "}|\n' \
+            f'"$reset -N" -> reset server with N required users' \
+            f'{4 * " "}|\n{54 * "-"}\n\n' \
+            f'Type your message:\n'
 
 # Private message
 private_ready = True  # Protect current private message until p2p is ready
@@ -46,8 +49,7 @@ def print_state():
 # Connection error
 @sio.event
 def connect_error(msg):
-    print(f'\nError connecting to the server!\nDetails: {msg}')
-    sys.exit()
+    print(f'\nError connecting to the server!\nDetails: {msg}\n')
 
 
 # User login to the chat
@@ -55,23 +57,29 @@ def user_login():
     username = input('\nUsername (no spaces or ":" allowed): ')
     print('')
     sio.emit('login', {
-        'user': username,
-        'ip':p2p_node.host, 'port': p2p_node.port,
-        'id': p2p_node.id
+        'user': username, 'port': p2p_node.port, 'id': p2p_node.id
     })
 
 
-@sio.on('graceful_disconnect')
+# Disconnect
+@sio.on('exit')
+def disconnect():
+    global accepted
+    accepted = False
+
+
+# Finish program
 def graceful_disconnect():
-    print("Gracefully closing client due to reset!")
-    sio.disconnect()
-    p2p_node.stop()
+    global accepted
+    accepted = False
     print_lock.acquire()
     print('Goodbye!\n')
     print('Waiting for connections to close...')
     print_lock.release()
+    sio.disconnect()
+    p2p_node.stop()
     exit()
-    #raise KeyboardInterrupt
+
 
 # Username is valid
 @sio.on('accepted')
@@ -83,58 +91,40 @@ def login_success():
 # Username is already in use
 @sio.on('denied')
 def login_failed(msg):
+    print_lock.acquire()
     print(msg)
+    print_lock.release()
     user_login()
 
 
-# Send message to chat
+# Send message to server
 def send_message():
-    global accepted, private_msg, private_ready
+    global private_msg
     if not chat_is_active:
         print(ask_input)
     message = input()
     print('')
-    message = message.strip()
-    if message == ':exit:':
-        accepted = False
-        return False
-    if message[:9] == ':private:':
-        msg_args = message.split()
-        if len(msg_args) < 3:
-            print('Invalid format for private message!')
-            print('\n' + ask_input)
-            return True
-        username = msg_args[1]
-        if username not in usernames:
-            print('Invalid username for private message!')
-            print('\n' + ask_input)
-            return True
-        while not private_ready:
-            pass
-        private_msg = ' '.join(msg_args[2:])
-        private_ready = False
-        sio.emit('private', username)
-        print('Private message sent successfully!')
-        print('\n' + ask_input)
-    else:
-        sio.emit('message', message)
-    return True
+    msg = message.strip().split()
+    if msg and msg[0] == '$exit':  # Exit program
+        raise KeyboardInterrupt
+    if msg and msg[0] == '$private':  # Private message
+        if len(msg) >= 3:
+            private_msg = ' '.join(msg[2:])
+            sio.emit('message', ' '.join(msg[:2]))  # To protect private text
+            return
+    if not accepted:  # Server was reset
+        print_lock.acquire()
+        print('Closing client due to server reset!')
+        print_lock.release()
+        raise KeyboardInterrupt
+    sio.emit('message', message)
 
 
-# Update user count & usernames
-@sio.on('users_add')
-def add_users(data):
-    global count, usernames
-    count = data['count']
-    usernames |= set(data['users'])
-
-
-# Update user count & remove user
-@sio.on('users_remove')
-def remove_user(data):
-    global count, usernames
-    count = data['count']
-    usernames.remove(data['user'])
+# Update user count
+@sio.on('users')
+def users_count(data):
+    global count
+    count = data
 
 
 # Show messages in chat
@@ -147,6 +137,16 @@ def receive_message(msg):
         print_lock.release()
 
 
+# Show event messages (usually input errors)
+@sio.on('event')
+def receive_event(msg):
+    if accepted:
+        print_lock.acquire()
+        print(msg)
+        print('\n' + ask_input)
+        print_lock.release()
+
+
 # Show many messages in chat
 @sio.on('msg_queue')
 def receive_messages(msgs):
@@ -156,7 +156,7 @@ def receive_messages(msgs):
         print_lock.acquire()
         for msg in msgs:
             chat.append('\n' + msg)
-        print(f'Chat is now active!\n')
+        print(f'Chat is now active!')
         print_state()
         print_lock.release()
 
@@ -165,18 +165,23 @@ def receive_messages(msgs):
 @sio.on('send_private_msg')
 def send_private_message(data):
     global private_ready
-    peer = None
-    for node in p2p_node.nodes_outbound:
-        if node.host == data['ip'] and node.port == data['port']:
-            peer = node
-    for node in p2p_node.nodes_inbound:
-        if node.host == data['ip'] and node.id == data['id']:
-            peer = node
+    private_ready = False
+    peer = p2p.get_peer(p2p_node, data)
     if not peer:
-        # TODO: in production this is not working, it fails to connect
         p2p.connect(p2p_node, data['ip'], data['port'])
-        peer = p2p_node.nodes_outbound[-1]
-    p2p_node.send_to_node(peer, f'(PRIVATE) {data["origin"]}: {private_msg}')
+    peer = p2p.get_peer(p2p_node, data)
+    if peer:
+        private_message = f'(PRIVATE) {data["origin"]}: {private_msg}'
+        p2p_node.send_to_node(peer, private_message)
+        print_lock.acquire()
+        print('Private message sent successfully!')
+        print('\n' + ask_input)
+        print_lock.release()
+    else:
+        print_lock.acquire()
+        print('Failed to send private message!')
+        print('\n' + ask_input)
+        print_lock.release()
     private_ready = True
 
 
@@ -192,22 +197,18 @@ def private_event(event, this, other, data):
 # Run client
 if __name__ == '__main__':
     p2p_node = p2p.init_p2p(private_event)
-    print(f"👀 Tu dirección es {p2p_node.host}:{p2p_node.port}")
-    uri = f'http://127.0.0.1:5000'
-    if len(sys.argv) > 0 and sys.argv[-1][-3:] != '.py':
+    uri = 'http://127.0.0.1:5000'
+    if len(sys.argv) > 1:
         uri = sys.argv[1]
     try:
-        print("💻 Server URI:", uri)
+        print(f'💻 Server URI: {uri}')
         sio.connect(uri)
         user_login()
         while not accepted:
             pass
-        chatting = True
-        while chatting:
-            chatting = send_message()
-    except KeyboardInterrupt:
-        accepted = False
-    except exc.ConnectionError:
-        accepted = False
+        while True:
+            send_message()
+    except (KeyboardInterrupt, exc.ConnectionError):
+        pass
     finally:
         graceful_disconnect()

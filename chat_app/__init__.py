@@ -24,11 +24,8 @@ db_name = 'chat_db'
 
 class GlobalParams:
     def __init__(self) -> None:
-        self.set_params()
-
-    def set_params(self, N_CLIENTS_REQUIRED=2):
         # Client counter
-        self.N_CLIENTS_REQUIRED = N_CLIENTS_REQUIRED
+        self.N_CLIENTS_REQUIRED = 2
         self.clients = 0
 
         # Users
@@ -40,6 +37,15 @@ class GlobalParams:
 
         # Messages
         self.messages = []
+
+    def set_params(self, n_clients=2):
+        self.N_CLIENTS_REQUIRED = n_clients
+        self.clients = 0
+        self.users = dict()
+        self.user_data = dict()
+        self.usernames = set()
+        self.messages = []
+        print(f'Server initialized (N = {self.N_CLIENTS_REQUIRED})')
 
 
 gb = GlobalParams()
@@ -53,24 +59,50 @@ def broadcast_past_messages(sid=None):
         socketio.emit('msg_queue', gb.messages, broadcast=True)
 
 
+# Obtain ip/port/id for private messaging
+def private(username):
+    ip, port, node_id = gb.user_data[username]
+    socketio.emit('send_private_msg', {
+        'ip': ip, 'port': port, 'id': node_id,
+        'origin': gb.users[request.sid]}, room=request.sid)
+
+
+# Revert server to initial state
+def reset_server(new_n):
+    print(f'Resetting server with N = {new_n} users required')
+    socketio.emit('exit', broadcast=True)
+    gb.set_params(n_clients=new_n)
+
+
+# Parse & delegate different commands
 def command_handler(msg):
-    # $reset -n --> reinicia usuarios, mensajes y N necesario.
-    if "$reset" in msg:
+    message = msg.strip().split()
+    if not message:  # Empty message
+        res = 'Messages can\'t be empty!'
+        socketio.emit('event', res, room=request.sid)
+        return True
+    if message[0] == '$private':  # Private command
+        if len(message) < 2:
+            res = 'Invalid format for private message! Use: $private USER MSG'
+            socketio.emit('event', res, room=request.sid)
+            return True
+        username = message[1]
+        if username not in (gb.usernames - set(gb.users[request.sid])):
+            res = 'Invalid username for private message!'
+            socketio.emit('event', res, room=request.sid)
+            return True
+        private(username)
+        return True
+    if message[0] == '$reset':  # Reset command
         try:
-            msg = msg.strip().split(" ")
-            new_N = int(msg[1][1:])
-            reset_server(new_N)
+            new_n = int(message[1][1:])
+            reset_server(new_n)
         except (IndexError, ValueError):
-            print("Comando no cumple formato: $reset -N")
-    else:
-        print("Comando no encontrado")
+            res = 'Invalid format for reset! Use: $reset -N'
+            socketio.emit('event', res, room=request.sid)
+        return True
+    return False
 
-
-def reset_server(new_N):
-    print(f"Resetting server with N={new_N} users required.")
-    gb.set_params(N_CLIENTS_REQUIRED=new_N)
-    socketio.emit('graceful_disconnect', broadcast=True)
-    # socketio.run(create_app())
 
 # Create app
 def create_app():
@@ -89,7 +121,6 @@ def create_app():
     migrate.init_app(app, db)
     CORS(app)
 
-
     # Listen for messages
     @socketio.on('message')
     def handle_message(msg):
@@ -97,15 +128,15 @@ def create_app():
         # message = Message(msg, users[request.sid])
         # Message.insert(message)
 
-        message = f'{gb.users[request.sid]}: {msg}'
-        if msg[0] == "$":
-            command_handler(msg)
-        else:
+        # Parse message
+        if not command_handler(msg):
+            # Normal message
+            message = f'{gb.users[request.sid]}: {msg}'
             gb.messages.append(message)
 
-        # Broadcast message
-        if gb.clients >= N_CLIENTS_REQUIRED:
-            socketio.emit('response', message, broadcast=True)
+            # Broadcast message
+            if gb.clients >= gb.N_CLIENTS_REQUIRED:
+                socketio.emit('response', message, broadcast=True)
 
     # Process login for each user
     @socketio.on('login')
@@ -122,13 +153,9 @@ def create_app():
             gb.clients += 1
             gb.users[request.sid] = user
             gb.user_data[user] = (
-                data['ip'], data['port'], data['id'])
-            socketio.emit('users_add', {
-                'count': gb.clients, 'users': list(gb.usernames)}, room=request.sid)
+                request.environ['REMOTE_ADDR'], data['port'], data['id'])
             gb.usernames.add(user)
-            socketio.emit('users_add', {
-                'count': gb.clients, 'users': [user]},
-                          broadcast=True, include_self=False)
+            socketio.emit('users', gb.clients, broadcast=True)
             socketio.emit('accepted', room=request.sid)
         else:  # Login failed
             socketio.emit('denied', f'{user} is already in use!',
@@ -139,6 +166,7 @@ def create_app():
         join_msg = f'{user} has joined the chat!'
         gb.messages.append(join_msg)
         if gb.clients == gb.N_CLIENTS_REQUIRED:
+            print('Chat is now active!')
             broadcast_past_messages()
             gb.N_CLIENTS_REQUIRED = -1  # Chat is permanent from now on
         elif gb.clients > gb.N_CLIENTS_REQUIRED:
@@ -149,47 +177,36 @@ def create_app():
     # User disconnects
     @socketio.on('disconnect')
     def disconnect():
-        global clients
         username = gb.users.pop(request.sid, False)
         if username:
             gb.clients -= 1
             gb.usernames.remove(username)
-            socketio.emit('users_remove', {
-                'count': gb.clients, 'user': username},
-                          broadcast=True, include_self=False)
+            socketio.emit(
+                'users', gb.clients, broadcast=True, include_self=False)
             msg = f'{username} has left the chat!'
-            if gb.clients > N_CLIENTS_REQUIRED:
+            if gb.clients > gb.N_CLIENTS_REQUIRED:
                 socketio.emit('response', msg)
-                gb.messages.append(msg)
-            else:
-                gb.messages.append(msg)
-
-    @socketio.on('private')
-    def private(username):
-        ip, port, node_id = gb.user_data[username]
-        socketio.emit('send_private_msg', {
-            'ip': ip, 'port': port, 'id': node_id,
-            'origin': gb.users[request.sid]}, room=request.sid)
+            gb.messages.append(msg)
 
     return app
 
 
 # Input error handling
 def notify_input_error():
-    print("🚨 Invalid parameters!")
-    print("   Try with:")
-    print("       python __init__.py -[n]")
-    print("   Where [n] is a positive integer.")
+    print('🚨 Invalid parameters!')
+    print('   Try with:')
+    print('       python __init__.py -[n]')
+    print('   Where [n] is a positive integer.')
 
 
 # Run server
 if __name__ == '__main__':
     if len(sys.argv) > 1:
         try:
-            N_CLIENTS_REQUIRED = abs(int(sys.argv[1][1:]))
+            gb.N_CLIENTS_REQUIRED = abs(int(sys.argv[1][1:]))
         except ValueError:
             notify_input_error()
             exit()
-        print(f'⏳ Waiting for {N_CLIENTS_REQUIRED} clients to join...')
-        # TODO: It would be ideal print the server address (ip:port)
-        socketio.run(create_app())
+    print(f'Server initialized (N = {gb.N_CLIENTS_REQUIRED})')
+    print(f'⏳ Waiting for {gb.N_CLIENTS_REQUIRED} clients to join...')
+    socketio.run(create_app())
