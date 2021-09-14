@@ -55,7 +55,10 @@ def user_login():
     username = input('\nUsername (no spaces or ":" allowed): ')
     print('')
     sio.emit('login', {
-        'user': username, 'port': p2p_node.port, 'id': p2p_node.id})
+        'user': username,
+        'ip':p2p_node.host, 'port': p2p_node.port,
+        'id': p2p_node.id
+    })
 
 
 @sio.on('graceful_disconnect')
@@ -189,10 +192,12 @@ def private_event(event, this, other, data):
 # Run client
 if __name__ == '__main__':
     p2p_node = p2p.init_p2p(private_event)
-    uri = 'http://127.0.0.1:5000'
-    if len(sys.argv) > 1:
+    print(f"👀 Tu dirección es {p2p_node.host}:{p2p_node.port}")
+    uri = f'http://127.0.0.1:5000'
+    if len(sys.argv) > 0 and sys.argv[-1][-3:] != '.py':
         uri = sys.argv[1]
     try:
+        print("💻 Server URI:", uri)
         sio.connect(uri)
         user_login()
         while not accepted:

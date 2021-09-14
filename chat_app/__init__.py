@@ -122,7 +122,7 @@ def create_app():
             gb.clients += 1
             gb.users[request.sid] = user
             gb.user_data[user] = (
-                request.environ['REMOTE_ADDR'], data['port'], data['id'])
+                data['ip'], data['port'], data['id'])
             socketio.emit('users_add', {
                 'count': gb.clients, 'users': list(gb.usernames)}, room=request.sid)
             gb.usernames.add(user)
