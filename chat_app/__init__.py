@@ -191,4 +191,5 @@ if __name__ == '__main__':
             notify_input_error()
             exit()
         print(f'⏳ Waiting for {N_CLIENTS_REQUIRED} clients to join...')
-    socketio.run(create_app())
+        # TODO: It would be ideal print the server address (ip:port)
+        socketio.run(create_app())

@@ -66,6 +66,9 @@ También es equivalente a ejecutar en la misma carpeta:
 python main.py URI
 ```
 
+## Suposiciones
+
+- Cuando el número de usuarios conectados pasa de ser mayor a N a ser menor a N, nadie ve ningún mensaje hasta que vuelvan a conectarse N usuarios.
 ## Instalación (old 🚨)
 
 ❗️❗️❗️ _Esta sección de instalación es antigual, debe ser borrada antes de la entrega final ❗️❗️❗️_
