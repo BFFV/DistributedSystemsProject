@@ -67,7 +67,8 @@ def graceful_disconnect():
     print('Goodbye!\n')
     print('Waiting for connections to close...')
     print_lock.release()
-    raise KeyboardInterrupt
+    exit()
+    #raise KeyboardInterrupt
 
 # Username is valid
 @sio.on('accepted')
