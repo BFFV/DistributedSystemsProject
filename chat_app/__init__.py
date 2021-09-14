@@ -152,8 +152,11 @@ def create_app():
         if user not in gb.usernames:
             gb.clients += 1
             gb.users[request.sid] = user
-            gb.user_data[user] = (
-                request.environ['REMOTE_ADDR'], data['port'], data['id'])
+            # TODO: check ip
+            client_ip = request.environ['REMOTE_ADDR']
+            if request.environ.get('HTTP_X_FORWARDED_FOR'):
+                client_ip = request.environ['HTTP_X_FORWARDED_FOR']
+            gb.user_data[user] = (client_ip, data['port'], data['id'])
             gb.usernames.add(user)
             socketio.emit('users', gb.clients, broadcast=True)
             socketio.emit('accepted', room=request.sid)
