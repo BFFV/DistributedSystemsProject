@@ -30,14 +30,13 @@ Se presentan los requerimientos del sistema solicitado mediante *user stories*:
 
 | #                    | Título                        | Descripción                                                  | Prioridad | Notas                                                        |
 | -------------------- | ----------------------------- | ------------------------------------------------------------ | --------- | ------------------------------------------------------------ |
-| 1                    | Ingreso al servidor           | Un usuario puede ingresar al servidor de chat                | Alta      |                                                              |
-| 2                    | Envío de mensajes al servidor | Un usuario puede enviar un mensaje al servidor               | Alta      |                                                              |
-| 3                    | Ver los mensajes              | Un usuario puede ver los mensajes enviados al servidor       | Alta      |                                                              |
+| <a name="req1">1</a> | Ingreso al servidor           | Un usuario puede ingresar al servidor de chat                | Alta      |                                                              |
+| <a name="req2">2</a> | Envío de mensajes al servidor | Un usuario puede enviar un mensaje al servidor               | Alta      |                                                              |
+| <a name="req3">3</a> | Ver los mensajes              | Un usuario puede ver los mensajes enviados al servidor       | Alta      |                                                              |
 | <a name="req4">4</a> | Usuarios mínimos conectados   | Un usuario no verá los mensajes pasados hasta que se hayan conectado N clientes | Media     | - El parámetro N puede cambiar mediante comando <br />- Por defecto N es evaluado como 2. |
-| 5                    | Envío de mensajes privados    | Un usuario puede enviar un mensaje privado a otro usuario    | Media     |                                                              |
-| 6                    | Ver los mensajes privados     | Un usuario puede ver los mensajes privados enviados por otro usuario | Media     |                                                              |
-
-
+| <a name="req5">5</a> | Envío de mensajes privados    | Un usuario puede enviar un mensaje privado a otro usuario    | Media     |                                                              |
+| <a name="req6">6</a> | Ver los mensajes privados     | Un usuario puede ver los mensajes privados enviados por otro usuario | Media     |                                                              |
+| <a name="req7">7</a> | Salir del servidor            | Un usuario puede salir del servidor mediante comando         | Baja      | - Para poder salir sin cerrar de manera indirecta (cerrar consola, ctrl + c) |
 
 ## Arquitectura
 
@@ -50,8 +49,6 @@ El servidor se encuentra montado sobre un contenedor Dynos de Heroku disponible 
 (Agregar instrucciones de *deployment*)
 
 ## Componentes
-
-
 
 <img src="https://github.com/BFFV/DistributedSystemsP1/blob/docs/figs/filemap.drawio.png?raw=true" style="zoom:20%; align:left;" />
 
@@ -69,7 +66,19 @@ Se dispone del código base del servidor, el cual se puede montar mediante un se
 python chat_app/__init__.py -N
 ```
 
-Esto permitirá el mantenimiento del [requerimiento #4](#req4)
+Posterior a esto, se recomienda realizar una prueba con **N-1** clientes conectados a este servidor, mediante el siguiente comando desde `root`
+
+```
+python client/client.py
+```
+
+Posterior, comience a enviar mensajes por estos N-1 clientes, y posterior conecte el cliente número **N**. Esto permitirá el mantenimiento de los requerimientos: [#1](#req1), [#2](#req2), [#3](#req3) y [#4](#req4)
+
+Luego, pruebe que la desconexión del servidor mediante el comando `$exit` con uno de los clientes, y una salida indirecta con otro cliente (cerrar consola o *Keyboard Interrupt*) para comprobar que el servidor sepa responder a dicha desconexión. Mantiene el requerimiento [#7](#req7).
+
+Finalmente, corresponde 
+
+#### Producción
 
 
 
