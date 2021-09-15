@@ -3,6 +3,7 @@ from flask import Flask, request
 from flask_socketio import SocketIO
 from flask_cors import CORS
 from flask_migrate import Migrate
+from socket import socket, AF_INET, SOCK_DGRAM
 
 
 # Command line options
@@ -152,13 +153,16 @@ def create_app():
         if user not in gb.usernames:
             gb.clients += 1
             gb.users[request.sid] = user
-            # TODO: check ip
-            # NOTE: No entiendo bien este código, según yo basta con que el mismo cliente
-            # envíe su IP en data['ip], pero lo dejaré comentado por si acaso.
-            #client_ip = request.environ['REMOTE_ADDR']
-            #if request.environ.get('HTTP_X_FORWARDED_FOR'):
-            #    client_ip = request.environ['HTTP_X_FORWARDED_FOR']
-            #gb.user_data[user] = (client_ip, data['port'], data['id'])
+
+            # NOTE: This code obtains the client ip from the server side
+            """
+            client_ip = request.environ['REMOTE_ADDR']
+            if request.environ.get('HTTP_X_FORWARDED_FOR'):
+                client_ip = request.environ['HTTP_X_FORWARDED_FOR']
+            gb.user_data[user] = (client_ip, data['port'], data['id'])
+            """
+
+            # NOTE: This code uses the ip provided by the client
             gb.user_data[user] = (data['ip'], data['port'], data['id'])
             gb.usernames.add(user)
             socketio.emit('users', gb.clients, broadcast=True)
@@ -205,6 +209,15 @@ def notify_input_error():
     print('   Where [n] is a positive integer.')
 
 
+# Get local ip of the server
+def get_local_ip():
+    s = socket(AF_INET, SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))
+    ip = s.getsockname()[0]
+    s.close()
+    return ip
+
+
 # Run server
 if __name__ == '__main__':
     if len(sys.argv) > 1:
@@ -213,6 +226,7 @@ if __name__ == '__main__':
         except ValueError:
             notify_input_error()
             exit()
+    print(f'💻 LAN Server URI: {get_local_ip()}')
     print(f'Server initialized (N = {gb.N_CLIENTS_REQUIRED})')
     print(f'⏳ Waiting for {gb.N_CLIENTS_REQUIRED} clients to join...')
     socketio.run(create_app())

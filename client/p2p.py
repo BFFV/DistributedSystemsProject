@@ -1,6 +1,7 @@
+from requests import get
 from p2pnetwork.node import Node
-from socket import socket, AF_INET, SOCK_DGRAM, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR
-import requests
+from socket import socket, AF_INET, SOCK_DGRAM, SOCK_STREAM, \
+    SOL_SOCKET, SO_REUSEADDR
 
 
 # Peer to Peer nodes
@@ -31,8 +32,7 @@ def get_local_ip():
 
 # Get public ip of the client
 def get_public_ip():
-    response = requests.get('https://api.ipify.org/?format=json')
-    ip = response.json()['ip']
+    ip = get('https://api.ipify.org').text
     return ip
 
 
@@ -47,9 +47,9 @@ def get_free_port():
 
 # Initialize p2p node for a client
 def init_p2p(callback):
-    #ipaddr = '127.0.0.1'
-    ipaddr = get_local_ip()
-    #ipaddr = get_public_ip()
+    # ipaddr = '127.0.0.1'  # Client is localhost
+    ipaddr = get_local_ip()  # LAN
+    # ipaddr = get_public_ip()  # Public IP for external networks
     port = get_free_port()
     node = P2PNode(ipaddr, port, callback=callback)
     node.start()
@@ -58,9 +58,8 @@ def init_p2p(callback):
 
 # Connect p2p node with a peer
 def connect(node, dest_ip, dest_port):
-    # TODO: check connection
     node.connect_with_node(dest_ip, dest_port)
-    print(f'\n👀 Peer2Peer connection with: {dest_ip}:{dest_port}\n')
+    # print(f'\n👀 Peer2Peer connection with: {dest_ip}:{dest_port}\n')
 
 
 # Get connected node if it exists
