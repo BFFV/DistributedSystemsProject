@@ -153,10 +153,13 @@ def create_app():
             gb.clients += 1
             gb.users[request.sid] = user
             # TODO: check ip
-            client_ip = request.environ['REMOTE_ADDR']
-            if request.environ.get('HTTP_X_FORWARDED_FOR'):
-                client_ip = request.environ['HTTP_X_FORWARDED_FOR']
-            gb.user_data[user] = (client_ip, data['port'], data['id'])
+            # NOTE: No entiendo bien este código, según yo basta con que el mismo cliente
+            # envíe su IP en data['ip], pero lo dejaré comentado por si acaso.
+            #client_ip = request.environ['REMOTE_ADDR']
+            #if request.environ.get('HTTP_X_FORWARDED_FOR'):
+            #    client_ip = request.environ['HTTP_X_FORWARDED_FOR']
+            #gb.user_data[user] = (client_ip, data['port'], data['id'])
+            gb.user_data[user] = (data['ip'], data['port'], data['id'])
             gb.usernames.add(user)
             socketio.emit('users', gb.clients, broadcast=True)
             socketio.emit('accepted', room=request.sid)

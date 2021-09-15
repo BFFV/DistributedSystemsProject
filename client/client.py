@@ -57,7 +57,9 @@ def user_login():
     username = input('\nUsername (no spaces or ":" allowed): ')
     print('')
     sio.emit('login', {
-        'user': username, 'port': p2p_node.port, 'id': p2p_node.id
+        'user': username,
+        'ip': p2p_node.host, 'port': p2p_node.port,
+        'id': p2p_node.id
     })
 
 
