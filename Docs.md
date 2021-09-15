@@ -10,13 +10,13 @@ En el siguiente documento detallaremos el proceso de desarrollo de la aplicació
 
 | Versión (Entrega)   | 2    |
 | ------------------- | ---- |
-| Épica-              | -    |
+| Épica               | -    |
 | Estado de Documento | -    |
 | Equipo              | -    |
 
 | Versión (Entrega)   | 3    |
 | ------------------- | ---- |
-| Épica-              | -    |
+| Épica               | -    |
 | Estado de Documento | -    |
 | Equipo              | -    |
 
@@ -26,14 +26,16 @@ En el siguiente documento detallaremos el proceso de desarrollo de la aplicació
 
 Se presentan los requerimientos del sistema solicitado mediante *user stories*:
 
-| #    | Título                        | Descripción                                                  | Prioridad | Notas                                                        |
-| ---- | ----------------------------- | ------------------------------------------------------------ | --------- | ------------------------------------------------------------ |
-| 1    | Ingreso al servidor           | Un usuario puede ingresar al servidor de chat                | Alta      |                                                              |
-| 2    | Envío de mensajes al servidor | Un usuario puede enviar un mensaje al servidor               | Alta      |                                                              |
-| 3    | Ver los mensajes              | Un usuario puede ver los mensajes enviados al servidor       | Alta      |                                                              |
-| 4    | Usuarios mínimos conectados   | Un usuario no verá los mensajes pasados hasta que se hayan conectado N clientes | Media     | - El parámetro N puede cambiar mediante comando <br />- Por defecto N es evaluado como 2. |
-| 5    | Envío de mensajes privados    | Un usuario puede enviar un mensaje privado a otro usuario    | Media     |                                                              |
-| 6    | Ver los mensajes privados     | Un usuario puede ver los mensajes privados enviados por otro usuario | Media     |                                                              |
+
+
+| #                    | Título                        | Descripción                                                  | Prioridad | Notas                                                        |
+| -------------------- | ----------------------------- | ------------------------------------------------------------ | --------- | ------------------------------------------------------------ |
+| 1                    | Ingreso al servidor           | Un usuario puede ingresar al servidor de chat                | Alta      |                                                              |
+| 2                    | Envío de mensajes al servidor | Un usuario puede enviar un mensaje al servidor               | Alta      |                                                              |
+| 3                    | Ver los mensajes              | Un usuario puede ver los mensajes enviados al servidor       | Alta      |                                                              |
+| <a name="req4"></a>4 | Usuarios mínimos conectados   | Un usuario no verá los mensajes pasados hasta que se hayan conectado N clientes | Media     | - El parámetro N puede cambiar mediante comando <br />- Por defecto N es evaluado como 2. |
+| 5                    | Envío de mensajes privados    | Un usuario puede enviar un mensaje privado a otro usuario    | Media     |                                                              |
+| 6                    | Ver los mensajes privados     | Un usuario puede ver los mensajes privados enviados por otro usuario | Media     |                                                              |
 
 
 
@@ -53,9 +55,21 @@ El servidor se encuentra montado sobre un contenedor Dynos de Heroku disponible 
 
 <img src="D:\Users\Juan\Desktop\Distribuidos\Tarea 1\DistributedSystemsP1\figs\filemap.drawio.png" style="zoom:67%; align:left;" />
 
-## Testeo 
+## Estrategia de testeo 
+
+Para la mantención de la aplicación se recomienda realizar una serie de pruebas sobre el funcionamiento del programa mediante **White-box *testing***.
 
 
+
+#### Local
+
+Se dispone del código base del servidor, el cual se puede montar mediante un servidor local corriendo el siguiente comando desde `root`.
+
+```
+python chat_app/__init__.py -N
+```
+
+Esto permitirá el [mantenimiento #4](#req4)
 
 
 
