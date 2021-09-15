@@ -1,5 +1,6 @@
 from p2pnetwork.node import Node
 from socket import socket, AF_INET, SOCK_DGRAM, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR
+import requests
 
 
 # Peer to Peer nodes
@@ -19,12 +20,19 @@ class P2PNode(Node):
         self.sock.listen(1)
 
 
-# Get ip of the client
-def get_my_ip():
+# Get local ip of the client
+def get_local_ip():
     s = socket(AF_INET, SOCK_DGRAM)
     s.connect(("8.8.8.8", 80))
     ip = s.getsockname()[0]
     s.close()
+    return ip
+
+
+# Get public ip of the client
+def get_public_ip():
+    response = requests.get('https://api.ipify.org/?format=json')
+    ip = response.json()['ip']
     return ip
 
 
@@ -40,7 +48,8 @@ def get_free_port():
 # Initialize p2p node for a client
 def init_p2p(callback):
     #ipaddr = '127.0.0.1'
-    ipaddr = get_my_ip()
+    ipaddr = get_local_ip()
+    #ipaddr = get_public_ip()
     port = get_free_port()
     node = P2PNode(ipaddr, port, callback=callback)
     node.start()

@@ -207,6 +207,7 @@ if __name__ == '__main__':
         uri = sys.argv[1]
     try:
         print(f'💻 Server URI: {uri}')
+        print(f'👀 Personal P2P address: {p2p_node.host}:{p2p_node.port}\n')
         sio.connect(uri)
         user_login()
         while not accepted:
