@@ -53,7 +53,7 @@ El servidor se encuentra montado sobre un contenedor Dynos de Heroku disponible 
 
 
 
-<img src="https://github.com/BFFV/DistributedSystemsP1/blob/docs/figs/filemap.drawio.png?raw=true" style="zoom:33%; align:left;" />
+<img src="https://github.com/BFFV/DistributedSystemsP1/blob/docs/figs/filemap.drawio.png?raw=true" style="zoom:20%; align:left;" />
 
 ## Estrategia de testeo 
 
