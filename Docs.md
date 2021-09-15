@@ -38,6 +38,8 @@ Se presentan los requerimientos del sistema solicitado mediante *user stories*:
 | <a name="req6">6</a> | Ver los mensajes privados     | Un usuario puede ver los mensajes privados enviados por otro usuario | Media     |                                                              |
 | <a name="req7">7</a> | Salir del servidor            | Un usuario puede salir del servidor mediante comando         | Baja      | - Para poder salir sin cerrar de manera indirecta (cerrar consola, ctrl + c) |
 
+
+
 ## Arquitectura
 
 Como equipo decidimos utilizar la arquitectura **cliente-servidor** con estructura **monolítica**. 
@@ -56,8 +58,6 @@ El servidor se encuentra montado sobre un contenedor Dynos de Heroku disponible 
 
 Para la mantención de la aplicación se recomienda realizar una serie de pruebas sobre el funcionamiento del programa mediante **White-box *testing***.
 
-
-
 #### Local
 
 Se dispone del código base del servidor, el cual se puede montar mediante un servidor local corriendo el siguiente comando desde `root`.
@@ -72,15 +72,39 @@ Posterior a esto, se recomienda realizar una prueba con **N-1** clientes conecta
 python client/client.py
 ```
 
-Posterior, comience a enviar mensajes por estos N-1 clientes, y posterior conecte el cliente número **N**. Esto permitirá el mantenimiento de los requerimientos: [#1](#req1), [#2](#req2), [#3](#req3) y [#4](#req4)
+Posterior, comience a enviar mensajes por estos N-1 clientes, y posterior conecte el cliente número **N**. 
+
+Una vez hecho, debe revisar que puede observar en consola los siguientes datos:
+
+- Instrucciones de uso.
+- Comandos especiales.
+- Usuarios conectados.
+- Mensajes enviados.
+- Mensajes recibidos.
+
+Esto permitirá el mantenimiento de los requerimientos: [#1](#req1), [#2](#req2), [#3](#req3) y [#4](#req4).
 
 Luego, pruebe que la desconexión del servidor mediante el comando `$exit` con uno de los clientes, y una salida indirecta con otro cliente (cerrar consola o *Keyboard Interrupt*) para comprobar que el servidor sepa responder a dicha desconexión. Mantiene el requerimiento [#7](#req7).
 
-Finalmente, corresponde 
+Mediante el uso de 3 o más clientes conectados, se recomienda probar el comando `$private USER MSG` enviando un mensaje a uno de los usuarios conectados, de lo cual se espera el siguiente comportamiento.
+
+- El usuario que envía el mensaje es confirmado del envío.
+- El usuario receptor tendrá un mensaje iniciado con `(PRIVATE)`.
+- Todo otro usuario no debe ver dicho mensaje.
+
+Así se mantienen los requerimientos: [#5](#req5) y [#6](#req6)
+
+Finalmente, probar el comando `$reset -N` y repetir el proceso con una nueva cantidad de usuarios conectados.
 
 #### Producción
 
+Para iniciar una prueba en un servidor externo, debe ejecutar el siguiente comando:
 
+```
+python client/client.py URI
+```
+
+Donde `URI` corresponde a la URI en la que se encuentra el servidor, en nuestro caso: https://pychat-io.herokuapp.com/
 
 ## Manual de uso
 
