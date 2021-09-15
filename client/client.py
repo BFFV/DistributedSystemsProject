@@ -57,7 +57,9 @@ def user_login():
     username = input('\nUsername (no spaces or ":" allowed): ')
     print('')
     sio.emit('login', {
-        'user': username, 'port': p2p_node.port, 'id': p2p_node.id
+        'user': username,
+        'ip': p2p_node.host, 'port': p2p_node.port,
+        'id': p2p_node.id
     })
 
 
@@ -173,9 +175,12 @@ def send_private_message(data):
     if peer:
         private_message = f'(PRIVATE) {data["origin"]}: {private_msg}'
         p2p_node.send_to_node(peer, private_message)
+        # Se agregar el mensaje privado al chat
+        chat.append('\n' + private_message)
         print_lock.acquire()
         print('Private message sent successfully!')
-        print('\n' + ask_input)
+        #print('\n' + ask_input)
+        print_state()
         print_lock.release()
     else:
         print_lock.acquire()
@@ -202,6 +207,7 @@ if __name__ == '__main__':
         uri = sys.argv[1]
     try:
         print(f'💻 Server URI: {uri}')
+        print(f'👀 Personal P2P address: {p2p_node.host}:{p2p_node.port}\n')
         sio.connect(uri)
         user_login()
         while not accepted:
