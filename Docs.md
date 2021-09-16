@@ -4,7 +4,7 @@ En el siguiente documento detallaremos el proceso de desarrollo de la aplicació
 
 | Versión (Entrega)   | 1                                                            |
 | ------------------- | ------------------------------------------------------------ |
-| Épica               | Envío de mensajes privados                                   |
+| Épica               | Chat distribuido simple y mensajes privados                  |
 | Estado de Documento | Borrador                                                     |
 | Equipo              | *Juan Aguillón* ([@vikingjuan](https://github.com/vikingjuan)) <br />*Benjamín Farías* ([@BFFV](https://github.com/BFFV)) <br />*Tomás García* ([@tgarcia5](https://github.com/tgarcia5)) <br />*Francisco Guíñez* ([@fguinez](https://github.com/fguinez))<br />*Christian Klempau* ([@Christian-Klempau](https://github.com/Christian-Klempau))<br />*Amaranta Salas* ([@amyaranta](https://github.com/amyaranta)) |
 
