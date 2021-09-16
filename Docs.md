@@ -50,8 +50,6 @@ El servidor se encuentra montado sobre un contenedor Dynos de Heroku disponible 
 
 El servidor y la comunicación con este se realizó utilizando el lenguaje [**Python 3**](https://docs.python.org/3.7/), sobre la librería [**Flask**](https://flask.palletsprojects.com/en/2.0.x/). Mientras que la comunicación privada entre clientes utilizamos la librería [**p2pnetwork**](https://github.com/macsnoeren/python-p2p-network).
 
-
-
 - Recomendamos usar **virtualenv** con Python 3.7+. De no estar instalado en su entorno de trabajo, debe instalar virtualenv (`pip3 install virtualenv`).
 - En la carpeta raíz del repositorio, ejecutar la siguiente línea para crear el entorno virtual:
 
@@ -102,6 +100,44 @@ heroku git:remote -a [nombre-de-la-app]
 ## Componentes
 
 <img src="https://github.com/BFFV/DistributedSystemsP1/blob/docs/figs/filemap.drawio.png?raw=true" style="zoom:20%; align:left;" />
+
+### chat_app
+
+Dentro del directorio **chat_app** se encuentran los archivos dedicados a montar el servidor del servicio, principalmente en el archivo **\_\_init\_\_.py**, mientras que el archivo **main.py** trabaja como *wrapper* de ejecución.
+
+Dentro de **_\_init\_\_.py** se encuentran las siguientes funciones principales:
+
+- 
+  ```python
+  def command_handler(msg):
+      message = msg.strip().split()
+      if message[0] == '$COMMAND':
+          # do command logic
+          # signal emition
+          socketio.emit('command')
+         	return True
+      return False
+  ```
+
+Esta función se dedica a manejar los comandos requeridos para la aplicación, hasta el momento, tiene programado los comandos: `$private` y `$reset`.
+
+- ```python
+  def create_app():
+      # Create and configure the app
+      # Listen for socket signals
+      @socketio.on('signal')
+      def wrapper(params):
+          # signal response logic
+          socketio.emit('response')
+  ```
+
+Esta función cumple con configurar la aplicación en **Flask** y responder a las señales recibidas con la lógica de **SocketIo**.
+
+
+
+### client
+
+Dentro del directorio **client** se encuentran los archivos dedicados al usuario, principalmente los archivos
 
 ## Estrategia de testeo 
 
@@ -154,6 +190,10 @@ python client/client.py URI
 ```
 
 Donde `URI` corresponde a la URI en la que se encuentra el servidor, en nuestro caso: https://pychat-io.herokuapp.com/
+
+## Dev Notes
+
+
 
 ## Manual de uso
 
