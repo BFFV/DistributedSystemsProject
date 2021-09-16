@@ -203,7 +203,7 @@ def create_app():
 
 # Input error handling
 def notify_input_error():
-    print('🚨 Invalid parameters!')
+    print('Invalid parameters!')
     print('   Try with:')
     print('       python __init__.py -[n]')
     print('   Where [n] is a positive integer.')
@@ -228,5 +228,5 @@ if __name__ == '__main__':
             exit()
     print(f'LAN Server URI: {get_local_ip()}')
     print(f'Server initialized (N = {gb.N_CLIENTS_REQUIRED})')
-    print(f'⏳ Waiting for {gb.N_CLIENTS_REQUIRED} clients to join...')
+    print(f'Waiting for {gb.N_CLIENTS_REQUIRED} clients to join...')
     socketio.run(create_app(), host='0.0.0.0')
