@@ -119,7 +119,7 @@ Dentro de **_\_init\_\_.py** se encuentran las siguientes funciones principales:
       return False
   ```
 
-Esta función se dedica a manejar los comandos requeridos para la aplicación, hasta el momento, tiene programado los comandos: `$private` y `$reset`.
+  Esta función se dedica a manejar los comandos requeridos para la aplicación, hasta el momento, tiene programado los comandos: `$private` y `$reset`.
 
 - ```python
   def create_app():
@@ -131,13 +131,17 @@ Esta función se dedica a manejar los comandos requeridos para la aplicación, h
           socketio.emit('response')
   ```
 
-Esta función cumple con configurar la aplicación en **Flask** y responder a las señales recibidas con la lógica de **SocketIo**.
+  Esta función cumple con configurar la aplicación en **Flask** y responder a las señales recibidas con la lógica de **SocketIo**.
 
 
 
 ### client
 
 Dentro del directorio **client** se encuentran los archivos dedicados al usuario, principalmente los archivos
+
+
+
+
 
 ## Estrategia de testeo 
 
