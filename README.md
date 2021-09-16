@@ -13,6 +13,15 @@ Tarea 1 - IIC2523
 
 **URI Producción:** https://pychat-io.herokuapp.com/
 
+## Índice
+
+- [Instrucciones de uso](https://github.com/BFFV/DistributedSystemsP1/blob/main/README.md#instrucciones-de-uso)
+  - [Instalación](https://github.com/BFFV/DistributedSystemsP1/blob/main/README.md#instalaci%C3%B3n)
+  - [Servidor (versión local)](https://github.com/BFFV/DistributedSystemsP1/blob/main/README.md#servidor-versi%C3%B3n-local)
+  - [Servidor (versión producción)](https://github.com/BFFV/DistributedSystemsP1/blob/main/README.md#servidor-versi%C3%B3n-producci%C3%B3n)
+  - [Cliente](https://github.com/BFFV/DistributedSystemsP1/blob/main/README.md#cliente)
+- [Consideraciones](https://github.com/BFFV/DistributedSystemsP1/blob/main/README.md#cliente)
+
 ## Instrucciones de uso
 ### Instalación
 
