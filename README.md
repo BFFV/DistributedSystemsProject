@@ -40,7 +40,7 @@ virtualenv venv
   ```
   source venv/bin/activate
   ```
-  
+  * NOTA: Si estás en Windows, este comando cambia a: ``source venv/Scripts/activate`` (ejecutando desde bash, sino se debe correr el ``activate.bat`` que se encuentra en dicho path desde Powershell o CMD)
 - En tu terminal debería aparecer un indicativo `(venv)`, el cual te informa que ya estás dentro del entorno virtual.
 
 - Finalmente, instalar los paquetes necesarios con `pip install -r requirements.txt` (este paso solo es necesario la primera vez).
@@ -89,10 +89,15 @@ heroku login
 ```
 heroku git:remote -a [nombre-de-la-app]
 ```
+
+6. Finalmente, estando en la rama ``main`` de tu repositorio, ejecutar:
+```
+git push heroku main
+```
+
 Y listo! El servidor ya está corriendo en heroku (por defecto el parámetro N será igual a 2)
 
 Revisa la siguiente sección para saber cómo conectarse desde los clientes.
-
 
 ### Cliente
 
@@ -105,7 +110,7 @@ python client.py URI
 Donde URI corresponde a la URI en la que se encuentra el servidor.
 - Si seguiste los pasos de la sección anterior, deberás rellenar este campo con `https://[nombre-de-la-app].herokuapp.com/`
 - Alternativamente, ya disponemos de una versión de producción alojada en Heroku en: https://pychat-io.herokuapp.com/
-- Si dejas este campo vació, se asume que estás intentando conectarte a un servidor local en http://127.0.0.1:5000
+- Si dejas este campo vacío, se asume que estás intentando conectarte a un servidor local en http://127.0.0.1:5000
 
 También es equivalente a ejecutar en la misma carpeta:
 
@@ -119,7 +124,7 @@ python main.py URI
  pero no se podrán ver hasta que el chat se active.
 
 - Cuando el número de usuarios conectados alcance el valor N, el chat quedará activado permanentemente,
-a menos que se utilice el comando `$reset -N` desde el servidor. Este permite volver a fijar un valor de N y reiniciar todo.
+a menos que se utilice el comando `$reset -N` desde algún cliente. Este último comando permite volver a fijar un valor de N y reiniciar todo.
 
 - Los comandos especiales del cliente (`$exit`, `$private`, `$reset`) son indicados dentro de la interfaz del chat.
 
