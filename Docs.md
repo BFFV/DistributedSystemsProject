@@ -33,7 +33,7 @@ Se presentan los requerimientos del sistema solicitado mediante *user stories*:
 | <a name="req1">1</a> | Ingreso al servidor           | Un usuario puede ingresar al servidor de chat                | Alta      |                                                              |
 | <a name="req2">2</a> | Envío de mensajes al servidor | Un usuario puede enviar un mensaje al servidor               | Alta      |                                                              |
 | <a name="req3">3</a> | Ver los mensajes              | Un usuario puede ver los mensajes enviados al servidor       | Alta      |                                                              |
-| <a name="req4">4</a> | Usuarios mínimos conectados   | Un usuario no verá los mensajes pasados hasta que se hayan conectado N clientes | Media     | - El parámetro N puede cambiar mediante comando <br />- Por defecto N es evaluado como 2. |
+| <a name="req4">4</a> | Usuarios mínimos conectados   | Un usuario no verá los mensajes pasados hasta que se hayan conectado N clientes | Media     | - El parámetro N puede cambiar mediante comando <br />- Por defecto N es evaluado como 2 |
 | <a name="req5">5</a> | Envío de mensajes privados    | Un usuario puede enviar un mensaje privado a otro usuario    | Media     |                                                              |
 | <a name="req6">6</a> | Ver los mensajes privados     | Un usuario puede ver los mensajes privados enviados por otro usuario | Media     |                                                              |
 | <a name="req7">7</a> | Salir del servidor            | Un usuario puede salir del servidor mediante comando         | Baja      | - Para poder salir sin cerrar de manera indirecta (cerrar consola, ctrl + c) |
@@ -48,7 +48,7 @@ El servidor se encuentra montado sobre un contenedor Dynos de Heroku disponible 
 
 ### *Environment*
 
-El servidor y la comunicación con este se realizó utilizando el lenguaje [**Python 3**](https://docs.python.org/3.7/), sobre la librería [**Flask**](https://flask.palletsprojects.com/en/2.0.x/). Mientras que la comunicación privada entre clientes utilizamos la librería [**p2pnetwork**](https://github.com/macsnoeren/python-p2p-network).
+El servidor y la comunicación con este se realizó utilizando el lenguaje [**Python 3**](https://docs.python.org/3.7/), sobre la librería [**Flask**](https://flask.palletsprojects.com/en/2.0.x/). Mientras que para la comunicación privada entre clientes utilizamos la librería [**p2pnetwork**](https://github.com/macsnoeren/python-p2p-network).
 
 - Recomendamos usar **virtualenv** con Python 3.7+. De no estar instalado en su entorno de trabajo, debe instalar virtualenv (`pip3 install virtualenv`).
 - En la carpeta raíz del repositorio, ejecutar la siguiente línea para crear el entorno virtual:
@@ -62,6 +62,7 @@ virtualenv venv
   ```
   source venv/bin/activate
   ```
+  * NOTA: Si estás en Windows, este comando cambia a: ``source venv/Scripts/activate`` (ejecutando desde bash, sino se debe correr el ``activate.bat`` que se encuentra en dicho path desde Powershell o CMD)
 
 - En tu terminal debería aparecer un indicativo `(venv)`, el cual te informa que ya estás dentro del entorno virtual.
 
@@ -95,8 +96,10 @@ heroku login
 heroku git:remote -a [nombre-de-la-app]
 ```
 
-
-
+6. Finalmente, estando en la rama ``main`` de tu repositorio, ejecutar:
+```
+git push heroku main
+```
 ## Componentes
 
 <img src="https://github.com/BFFV/DistributedSystemsP1/blob/docs/figs/filemap.drawio.png?raw=true" style="zoom:20%; align:left;" />
@@ -133,7 +136,7 @@ Dentro de **_\_init\_\_.py** se encuentran las siguientes funciones principales:
 
   Esta función cumple con configurar la aplicación en **Flask** y responder a las señales recibidas con la lógica de **SocketIo**.
 
-Los archivos **models.py** y **wsgi.py** son para futuro desarrollo en la aplicación y conexión a una base de datos.
+Los archivos **models.py** y **wsgi.py** son para futuro desarrollo en la aplicación, conexión a una base de datos y temas de deployment (en el caso de **wsgi.py**).
 
 ### client
 
@@ -181,17 +184,17 @@ Una vez hecho, debe revisar que puede observar en consola los siguientes datos:
 
 Esto permitirá el mantenimiento de los requerimientos: [#1](#req1), [#2](#req2), [#3](#req3) y [#4](#req4).
 
-Luego, pruebe que la desconexión del servidor mediante el comando `$exit` con uno de los clientes, y una salida indirecta con otro cliente (cerrar consola o *Keyboard Interrupt*) para comprobar que el servidor sepa responder a dicha desconexión. Mantiene el requerimiento [#7](#req7).
+Luego, pruebe la desconexión del servidor mediante el comando `$exit` con uno de los clientes, y una salida indirecta con otro cliente (cerrar consola o *Keyboard Interrupt*) para comprobar que el servidor sepa responder a dicha desconexión. Mantiene el requerimiento [#7](#req7).
 
 Mediante el uso de 3 o más clientes conectados, se recomienda probar el comando `$private USER MSG` enviando un mensaje a uno de los usuarios conectados, de lo cual se espera el siguiente comportamiento.
 
 - El usuario que envía el mensaje es confirmado del envío.
-- El usuario receptor tendrá un mensaje iniciado con `(PRIVATE)`.
+- El usuario emisor y receptor tendrá un mensaje iniciado con `(PRIVATE)`.
 - Todo otro usuario no debe ver dicho mensaje.
 
 Así se mantienen los requerimientos: [#5](#req5) y [#6](#req6)
 
-Finalmente, probar el comando `$reset -N` y repetir el proceso con una nueva cantidad de usuarios conectados.
+Finalmente, probar el comando `$reset -N` y repetir el proceso con una nueva cantidad de usuarios conectados, ya que los anteriores se desconectarán apenas se aprete alguna tecla de input.
 
 #### Producción
 
@@ -205,8 +208,7 @@ Donde `URI` corresponde a la URI en la que se encuentra el servidor, en nuestro 
 
 ## Dev Notes
 
-- 
-- 
+- El P2P no es posible aún entre redes de distintos lugares, debido a que se requiere la implementación de alguna estrategia tipo NAT Hole Punching o Port Forwarding para pasar a través de los routers privados.
 
 ## Manual de uso
 
