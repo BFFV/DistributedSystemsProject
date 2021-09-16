@@ -116,7 +116,7 @@ def send_message():
             return
     if not accepted:  # Server was reset
         print_lock.acquire()
-        print('Closing client due to server reset!')
+        print('Closing client due to server reset!\n')
         print_lock.release()
         raise KeyboardInterrupt
     sio.emit('message', message)
@@ -158,7 +158,7 @@ def receive_messages(msgs):
         print_lock.acquire()
         for msg in msgs:
             chat.append('\n' + msg)
-        print(f'Chat is now active!')
+        print('Chat is now active!')
         print_state()
         print_lock.release()
 
@@ -205,8 +205,8 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         uri = sys.argv[1]
     try:
-        print(f'💻 Server URI: {uri}')
-        print(f'👀 Personal P2P address: {p2p_node.host}:{p2p_node.port}\n')
+        print(f'Server URI: {uri}')
+        print(f'Personal P2P address: {p2p_node.host}:{p2p_node.port}\n')
         sio.connect(uri)
         user_login()
         while not accepted:

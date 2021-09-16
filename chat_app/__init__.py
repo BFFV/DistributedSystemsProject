@@ -212,7 +212,7 @@ def notify_input_error():
 # Get local ip of the server
 def get_local_ip():
     s = socket(AF_INET, SOCK_DGRAM)
-    s.connect(("8.8.8.8", 80))
+    s.connect(('8.8.8.8', 80))
     ip = s.getsockname()[0]
     s.close()
     return ip
@@ -226,7 +226,7 @@ if __name__ == '__main__':
         except ValueError:
             notify_input_error()
             exit()
-    print(f'💻 LAN Server URI: {get_local_ip()}')
+    print(f'LAN Server URI: {get_local_ip()}')
     print(f'Server initialized (N = {gb.N_CLIENTS_REQUIRED})')
     print(f'⏳ Waiting for {gb.N_CLIENTS_REQUIRED} clients to join...')
-    socketio.run(create_app())
+    socketio.run(create_app(), host='0.0.0.0')

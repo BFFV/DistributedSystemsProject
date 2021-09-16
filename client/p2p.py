@@ -24,7 +24,7 @@ class P2PNode(Node):
 # Get local ip of the client
 def get_local_ip():
     s = socket(AF_INET, SOCK_DGRAM)
-    s.connect(("8.8.8.8", 80))
+    s.connect(('8.8.8.8', 80))
     ip = s.getsockname()[0]
     s.close()
     return ip
