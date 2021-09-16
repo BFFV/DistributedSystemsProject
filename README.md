@@ -22,6 +22,8 @@ Tarea 1 - IIC2523
   - [Cliente](https://github.com/BFFV/DistributedSystemsP1/blob/main/README.md#cliente)
 - [Consideraciones](https://github.com/BFFV/DistributedSystemsP1/blob/main/README.md#cliente)
 
+**Nota:** Para una visión más detallada de la documentación del proyecto puedes visitar [Docs.md](https://github.com/BFFV/DistributedSystemsP1/blob/main/Docs.md).
+
 ## Instrucciones de uso
 ### Instalación
 
