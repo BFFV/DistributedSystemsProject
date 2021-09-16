@@ -48,7 +48,33 @@ El servidor se encuentra montado sobre un contenedor Dynos de Heroku disponible 
 
 ### *Deployment*
 
-(Agregar instrucciones de *deployment*)
+El proceso para realizar el deploy consta de los siguientes pasos:
+
+1. Ingresar a [heroku.com](https://www.heroku.com/) e iniciar sesión.
+   - En caso de no tener cuenta, primero debes crearla.
+2. Una vez que se despliegue el _dashboard_, presionar la opción 'Create new app' que se despliega al presionar 'New' en la esquina superior derecha:
+
+![Botón New](https://imgur.com/j7LuSUY.png)
+
+3. Elegir un nombre de la app y presionar 'Create app'.
+
+![Botón New](https://imgur.com/Jrn5cW5.png)
+
+4. Iniciar sesión en heroku desde la consola con el comando:
+
+```
+heroku login
+```
+
+   - Si el comando `heroku` no está instalado, seguir [estas](https://devcenter.heroku.com/articles/heroku-cli) instrucciones.
+
+5. Dentro de la carpeta del repositorio, ejecutar:
+
+```
+heroku git:remote -a [nombre-de-la-app]
+```
+
+
 
 ## Componentes
 
