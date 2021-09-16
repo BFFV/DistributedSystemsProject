@@ -123,23 +123,31 @@ Dentro de **_\_init\_\_.py** se encuentran las siguientes funciones principales:
 
 - ```python
   def create_app():
-      # Create and configure the app
-      # Listen for socket signals
+      # Crea y configura la app
+      # Escuchar las seniales del socket
       @socketio.on('signal')
       def wrapper(params):
-          # signal response logic
-          socketio.emit('response')
+          # Logica de respuesta
+          socketio.emit('response') # solo si corresponde
   ```
 
   Esta función cumple con configurar la aplicación en **Flask** y responder a las señales recibidas con la lógica de **SocketIo**.
 
-
+Los archivos **models.py** y **wsgi.py** son para futuro desarrollo en la aplicación y conexión a una base de datos.
 
 ### client
 
-Dentro del directorio **client** se encuentran los archivos dedicados al usuario, principalmente los archivos
+Dentro del directorio **client** se encuentran los archivos dedicados al usuario, principalmente los archivos **client.py** y **p2p.py**, mientras que el archivo **main.py** trabaja como *wrapper* de ejecución.
 
+Dentro de **client.py** se encuentra la lógica de comunicación al servidor, y llamada a lógica de comunicación entre clientes. Podemos encontrar la siguiente lógica para la escucha y emisión de señales:
 
+```python
+# Escuchar las seniales del socket
+@sio.on('signal')
+def wrapper(params):
+    # Logica de respuesta
+   	sio.emit('response') # solo si corresponde
+```
 
 
 
@@ -197,8 +205,9 @@ Donde `URI` corresponde a la URI en la que se encuentra el servidor, en nuestro 
 
 ## Dev Notes
 
-
+- 
+- 
 
 ## Manual de uso
 
-El manual de uso de la aplicación se encuentra en el archivo **README.md** disponible en el repositorio de la app.
+El manual de uso de la aplicación se encuentra en el archivo [**README.md**](https://github.com/BFFV/DistributedSystemsP1/blob/main/README.md) disponible en el repositorio de la app.
