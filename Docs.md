@@ -46,6 +46,29 @@ Como equipo decidimos utilizar la arquitectura **cliente-servidor** con estructu
 
 El servidor se encuentra montado sobre un contenedor Dynos de Heroku disponible en: https://pychat-io.herokuapp.com/.
 
+### *Environment*
+
+El servidor y la comunicación con este se realizó utilizando el lenguaje [**Python 3**](https://docs.python.org/3.7/), sobre la librería [**Flask**](https://flask.palletsprojects.com/en/2.0.x/). Mientras que la comunicación privada entre clientes utilizamos la librería [**p2pnetwork**](https://github.com/macsnoeren/python-p2p-network).
+
+
+
+- Recomendamos usar **virtualenv** con Python 3.7+. De no estar instalado en su entorno de trabajo, debe instalar virtualenv (`pip3 install virtualenv`).
+- En la carpeta raíz del repositorio, ejecutar la siguiente línea para crear el entorno virtual:
+
+```
+virtualenv venv
+```
+
+- Luego, deberás ejecutar la siguiente línea cada vez que quieras entrar al entorno virtual:
+
+  ```
+  source venv/bin/activate
+  ```
+
+- En tu terminal debería aparecer un indicativo `(venv)`, el cual te informa que ya estás dentro del entorno virtual.
+
+- Finalmente, instalar los paquetes necesarios con `pip install -r requirements.txt` (este paso solo es necesario la primera vez).
+
 ### *Deployment*
 
 El proceso para realizar el deploy consta de los siguientes pasos:
