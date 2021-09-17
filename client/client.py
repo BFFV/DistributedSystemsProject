@@ -1,5 +1,6 @@
 import socketio
 import sys
+import os
 import p2p
 from socketio import exceptions as exc
 from collections import deque
@@ -32,17 +33,18 @@ private_msg = ''  # Current private message
 
 # Print chat & events
 def print_state():
+    width = os.get_terminal_size().columns
     print('\n')
-    print(100 * '*')
-    print(46 * ' ' + 'CHAT')
-    print(100 * '*')
+    print(width * '*')
+    print((width - 4) // 2 * ' ' + 'CHAT')
+    print(width * '*')
     if not chat:
         print('No messages!')
     for msg in list(chat):
         print(msg)
-    print('\n' + 100 * '*')
+    print('\n' + width * '*')
     print(f'Users Connected: {count}')
-    print(100 * '*')
+    print(width * '*')
     print('\n' + ask_input)
 
 
