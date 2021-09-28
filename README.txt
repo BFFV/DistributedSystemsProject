@@ -30,7 +30,7 @@ Opción B: Instalarlas desde el archivo 'requirements.txt' incluido en la entreg
 
 * Servidor
 
-Para correr el servidor localmente, ejecutar la siguiente línea dentro de la carpeta 'chat_app': "python3 __init__.py -N
+Para correr el servidor localmente, ejecutar la siguiente línea dentro de la carpeta 'chat_app': "python3 __init__.py -N"
 Donde N corresponde a cualquier número entero positivo (ej: "python3 __init__.py -2").
 
 * Cliente
