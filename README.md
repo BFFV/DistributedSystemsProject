@@ -101,7 +101,7 @@ Revisa la siguiente sección para saber cómo conectarse desde los clientes.
 
 ### Cliente
 
-**Para correr un cliente**, ejecutar la siguiente línea dentro de la carpeta `cliente`:
+**Para correr un cliente**, ejecutar la siguiente línea dentro de la carpeta `client`:
 
 ```
 python client.py URI
