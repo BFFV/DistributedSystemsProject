@@ -23,7 +23,7 @@ def broadcast_past_messages(sid=None):
         socketio.emit('msg_queue', sv.messages, broadcast=True)
 
 
-# Obtain ip/port/id for private messaging
+# Obtain ip/port/id for private messaging, and send private message.
 def private(username):
     ip, port, node_id = sv.get_user_connections(username)
     socketio.emit('send_private_msg', {

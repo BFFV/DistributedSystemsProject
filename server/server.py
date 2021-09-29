@@ -1,5 +1,6 @@
 from random import choice
 from user import User
+from migrator import Migrator
 
 
 class Server:
@@ -10,7 +11,6 @@ class Server:
 
         # Users
         self.users = dict()  # Key: socket ID, Value: Username
-        self.user_data = dict()  # Key: Username, Value: IP/Port
 
         # Usernames set (for quickly checking existence)
         self.usernames = set()
@@ -18,17 +18,19 @@ class Server:
         # Messages
         self.messages = []
 
+        # Migration middleware
+        self.migrator = Migrator(self, interval=5)
+
     def set_params(self, n_clients=2):
         self.N_CLIENTS_REQUIRED = n_clients
         self.n_clients = 0
         self.users = dict()
-        self.user_data = dict()
         self.usernames = set()
         self.messages = []
         print(f'Server initialized (N = {self.N_CLIENTS_REQUIRED})')
 
     def __getitem__(self, socket_id):
-        """ Al acceder a la clase con llave [socket_id], retorna el nombre de usuario. """
+        """ Al acceder a la clase con llave [socket_id], retorna el nombre de usuario."""
         try:
             return self.users[socket_id].username
         except KeyError:
