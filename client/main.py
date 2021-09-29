@@ -175,7 +175,8 @@ def send_private_message(data):
         p2p.connect(p2p_node, data['ip'], data['port'])
     peer = p2p.get_peer(p2p_node, data)
     if peer:
-        private_message = f'(PRIVATE) ({data["sender"]}) -> ({data["target"]}): {private_msg}'
+        private_message = f'(PRIVATE) ({data["sender"]}) -> ' \
+                          f'({data["target"]}): {private_msg}'
         p2p_node.send_to_node(peer, private_message)
         chat.append('\n' + private_message)
         print_lock.acquire()
@@ -199,6 +200,10 @@ def private_event(event, this, other, data):
         print_state()
         print_lock.release()
 
+# TODO: Connect to real server
+# TODO: Spawn new server (migration)
+# TODO: Reconnect to new server (after migration)
+
 
 # Run client
 if __name__ == '__main__':
@@ -210,6 +215,7 @@ if __name__ == '__main__':
         print(f'Server URI: {uri}')
         print(f'Personal P2P address: {p2p_node.host}:{p2p_node.port}\n')
         sio.connect(uri)
+        # TODO: Connect to real server
         user_login()
         while not accepted:
             pass
