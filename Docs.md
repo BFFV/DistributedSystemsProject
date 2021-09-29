@@ -109,15 +109,12 @@ heroku git:remote -a [nombre-de-la-app]
 ```
 git push heroku main
 ```
-## Componentes
 
-<img src="https://github.com/BFFV/DistributedSystemsP1/blob/docs/figs/filemap.drawio.png?raw=true" style="zoom:20%; align:left;" />
+### Server
 
-### chat_app
+Dentro del directorio **server** se encuentra el archivo que monta el servidor **(main.py)**.
 
-Dentro del directorio **chat_app** se encuentran los archivos dedicados a montar el servidor del servicio, principalmente en el archivo **\_\_init\_\_.py**, mientras que el archivo **main.py** trabaja como *wrapper* de ejecución.
-
-Dentro de **_\_init\_\_.py** se encuentran las siguientes funciones principales:
+Dentro de **main.py** se encuentran las siguientes funciones principales:
 
 - 
   ```python
@@ -145,13 +142,11 @@ Dentro de **_\_init\_\_.py** se encuentran las siguientes funciones principales:
 
   Esta función cumple con configurar la aplicación en **Flask** y responder a las señales recibidas con la lógica de **SocketIo**.
 
-Los archivos **models.py** y **wsgi.py** son para futuro desarrollo en la aplicación, conexión a una base de datos y temas de deployment (en el caso de **wsgi.py**).
+### Client
 
-### client
+Dentro del directorio **client** se encuentran los archivos dedicados al usuario, que son **main.py** y **p2p.py**.
 
-Dentro del directorio **client** se encuentran los archivos dedicados al usuario, principalmente los archivos **client.py** y **p2p.py**, mientras que el archivo **main.py** trabaja como *wrapper* de ejecución.
-
-Dentro de **client.py** se encuentra la lógica de comunicación al servidor, y llamada a lógica de comunicación entre clientes. Podemos encontrar la siguiente lógica para la escucha y emisión de señales:
+Dentro de **main.py** se encuentra la lógica de comunicación al servidor, y llamada a lógica de comunicación entre clientes. Podemos encontrar la siguiente lógica para la escucha y emisión de señales:
 
 ```python
 # Escuchar las seniales del socket
@@ -160,8 +155,6 @@ def wrapper(params):
     # Logica de respuesta
    	sio.emit('response') # solo si corresponde
 ```
-
-
 
 ## Estrategia de testeo 
 
@@ -172,13 +165,13 @@ Para la mantención de la aplicación se recomienda realizar una serie de prueba
 Se dispone del código base del servidor, el cual se puede montar mediante un servidor local corriendo el siguiente comando desde `root`.
 
 ```
-python chat_app/__init__.py -N
+python3 server/main.py -N
 ```
 
 Posterior a esto, se recomienda realizar una prueba con **N-1** clientes conectados a este servidor, mediante el siguiente comando desde `root`
 
 ```
-python client/client.py
+python3 client/main.py
 ```
 
 Posterior, comience a enviar mensajes por estos N-1 clientes, y posterior conecte el cliente número **N**. 
@@ -210,7 +203,7 @@ Finalmente, probar el comando `$reset -N` y repetir el proceso con una nueva can
 Para iniciar una prueba en un servidor externo, debe ejecutar el siguiente comando:
 
 ```
-python client/client.py URI
+python3 client/main.py URI
 ```
 
 Donde `URI` corresponde a la URI en la que se encuentra el servidor, en nuestro caso: https://pychat-io.herokuapp.com/
@@ -221,4 +214,4 @@ Donde `URI` corresponde a la URI en la que se encuentra el servidor, en nuestro 
 
 ## Manual de uso
 
-El manual de uso de la aplicación se encuentra en el archivo [**README.md**](https://github.com/BFFV/DistributedSystemsP1/blob/main/README.md) disponible en el repositorio de la app.
+El manual de uso de la aplicación se encuentra en el archivo [**README.txt**](README.txt) disponible en el repositorio de la app.
