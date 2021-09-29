@@ -1,3 +1,15 @@
+# Grupo 3 - Sistemas Distribuidos
+
+***Integrantes:***
+- *Juan Aguillón* ([@vikingjuan](https://github.com/vikingjuan))
+- *Benjamín Farías* ([@BFFV](https://github.com/BFFV))
+- *Tomás García* ([@tgarcia5](https://github.com/tgarcia5))
+- *Francisco Guíñez* ([@fguinez](https://github.com/fguinez))
+- *Christian Klempau* ([@Christian-Klempau](https://github.com/Christian-Klempau))
+- *Amaranta Salas* ([@amyaranta](https://github.com/amyaranta))
+
+***Profesor:** Javier Bustos*
+
 # Chat App
 
 En el siguiente documento detallaremos el proceso de desarrollo de la aplicación Chat App, correspondiente a los requerimientos, arquitectura, componentes, *testing* y manuales de uso (*end user*).
@@ -6,27 +18,25 @@ En el siguiente documento detallaremos el proceso de desarrollo de la aplicació
 | ------------------- | ------------------------------------------------------------ |
 | Épica               | Chat distribuido simple y mensajes privados                  |
 | Estado de Documento | Borrador                                                     |
-| Equipo              | *Juan Aguillón* ([@vikingjuan](https://github.com/vikingjuan)) <br />*Benjamín Farías* ([@BFFV](https://github.com/BFFV)) <br />*Tomás García* ([@tgarcia5](https://github.com/tgarcia5)) <br />*Francisco Guíñez* ([@fguinez](https://github.com/fguinez))<br />*Christian Klempau* ([@Christian-Klempau](https://github.com/Christian-Klempau))<br />*Amaranta Salas* ([@amyaranta](https://github.com/amyaranta)) |
 
 | Versión (Entrega)   | 2    |
 | ------------------- | ---- |
 | Épica               | -    |
 | Estado de Documento | -    |
-| Equipo              | -    |
 
 | Versión (Entrega)   | 3    |
 | ------------------- | ---- |
 | Épica               | -    |
 | Estado de Documento | -    |
-| Equipo              | -    |
 
-
+| Versión (Entrega)   | 4    |
+| ------------------- | ---- |
+| Épica               | -    |
+| Estado de Documento | -    |
 
 ## Requerimientos
 
 Se presentan los requerimientos del sistema solicitado mediante *user stories*:
-
-
 
 | #                    | Título                        | Descripción                                                  | Prioridad | Notas                                                        |
 | -------------------- | ----------------------------- | ------------------------------------------------------------ | --------- | ------------------------------------------------------------ |
@@ -39,34 +49,18 @@ Se presentan los requerimientos del sistema solicitado mediante *user stories*:
 | <a name="req7">7</a> | Salir del servidor            | Un usuario puede salir del servidor mediante comando         | Baja      | - Para poder salir sin cerrar de manera indirecta (cerrar consola, ctrl + c) |
 
 
-
 ## Arquitectura
 
 Como equipo decidimos utilizar la arquitectura **cliente-servidor** con estructura **monolítica**. 
 
-El servidor se encuentra montado sobre un contenedor Dynos de Heroku disponible en: https://pychat-io.herokuapp.com/.
+**(Tarea 1)** Un servidor de producción se encuentra montado sobre un contenedor Dynos de Heroku disponible en: https://pychat-io.herokuapp.com/.
 
 ### *Environment*
 
 El servidor y la comunicación con este se realizó utilizando el lenguaje [**Python 3**](https://docs.python.org/3.7/), sobre la librería [**Flask**](https://flask.palletsprojects.com/en/2.0.x/). Mientras que para la comunicación privada entre clientes utilizamos la librería [**p2pnetwork**](https://github.com/macsnoeren/python-p2p-network).
 
-- Recomendamos usar **virtualenv** con Python 3.7+. De no estar instalado en su entorno de trabajo, debe instalar virtualenv (`pip3 install virtualenv`).
-- En la carpeta raíz del repositorio, ejecutar la siguiente línea para crear el entorno virtual:
-
-```
-virtualenv venv
-```
-
-- Luego, deberás ejecutar la siguiente línea cada vez que quieras entrar al entorno virtual:
-
-  ```
-  source venv/bin/activate
-  ```
-  * NOTA: Si estás en Windows, este comando cambia a: ``source venv/Scripts/activate`` (ejecutando desde bash, sino se debe correr el ``activate.bat`` que se encuentra en dicho path desde Powershell o CMD)
-
-- En tu terminal debería aparecer un indicativo `(venv)`, el cual te informa que ya estás dentro del entorno virtual.
-
-- Finalmente, instalar los paquetes necesarios con `pip install -r requirements.txt` (este paso solo es necesario la primera vez).
+- Recomendamos usar **virtualenv** con Python 3.7+.
+- Las librerías requeridas se encuentran dentro del archivo ``requirements.txt``.
 
 ### *Deployment*
 
@@ -100,15 +94,12 @@ heroku git:remote -a [nombre-de-la-app]
 ```
 git push heroku main
 ```
-## Componentes
 
-<img src="https://github.com/BFFV/DistributedSystemsP1/blob/docs/figs/filemap.drawio.png?raw=true" style="zoom:20%; align:left;" />
+### Server
 
-### chat_app
+Dentro del directorio **server** se encuentra el archivo que monta el servidor **(main.py)**.
 
-Dentro del directorio **chat_app** se encuentran los archivos dedicados a montar el servidor del servicio, principalmente en el archivo **\_\_init\_\_.py**, mientras que el archivo **main.py** trabaja como *wrapper* de ejecución.
-
-Dentro de **_\_init\_\_.py** se encuentran las siguientes funciones principales:
+Dentro de **main.py** se encuentran las siguientes funciones principales:
 
 - 
   ```python
@@ -134,15 +125,13 @@ Dentro de **_\_init\_\_.py** se encuentran las siguientes funciones principales:
           socketio.emit('response') # solo si corresponde
   ```
 
-  Esta función cumple con configurar la aplicación en **Flask** y responder a las señales recibidas con la lógica de **SocketIo**.
+  Esta función cumple con configurar la aplicación en **Flask** y responder a las señales recibidas con la lógica de **SocketIO**.
 
-Los archivos **models.py** y **wsgi.py** son para futuro desarrollo en la aplicación, conexión a una base de datos y temas de deployment (en el caso de **wsgi.py**).
+### Client
 
-### client
+Dentro del directorio **client** se encuentran los archivos dedicados al usuario, que son **main.py** y **p2p.py**.
 
-Dentro del directorio **client** se encuentran los archivos dedicados al usuario, principalmente los archivos **client.py** y **p2p.py**, mientras que el archivo **main.py** trabaja como *wrapper* de ejecución.
-
-Dentro de **client.py** se encuentra la lógica de comunicación al servidor, y llamada a lógica de comunicación entre clientes. Podemos encontrar la siguiente lógica para la escucha y emisión de señales:
+Dentro de **main.py** se encuentra la lógica de comunicación al servidor, y llamada a lógica de comunicación entre clientes. Podemos encontrar la siguiente lógica para la escucha y emisión de señales:
 
 ```python
 # Escuchar las seniales del socket
@@ -151,8 +140,6 @@ def wrapper(params):
     # Logica de respuesta
    	sio.emit('response') # solo si corresponde
 ```
-
-
 
 ## Estrategia de testeo 
 
@@ -163,13 +150,13 @@ Para la mantención de la aplicación se recomienda realizar una serie de prueba
 Se dispone del código base del servidor, el cual se puede montar mediante un servidor local corriendo el siguiente comando desde `root`.
 
 ```
-python chat_app/__init__.py -N
+python3 server/main.py -N
 ```
 
 Posterior a esto, se recomienda realizar una prueba con **N-1** clientes conectados a este servidor, mediante el siguiente comando desde `root`
 
 ```
-python client/client.py
+python3 client/main.py
 ```
 
 Posterior, comience a enviar mensajes por estos N-1 clientes, y posterior conecte el cliente número **N**. 
@@ -201,7 +188,7 @@ Finalmente, probar el comando `$reset -N` y repetir el proceso con una nueva can
 Para iniciar una prueba en un servidor externo, debe ejecutar el siguiente comando:
 
 ```
-python client/client.py URI
+python3 client/main.py URI
 ```
 
 Donde `URI` corresponde a la URI en la que se encuentra el servidor, en nuestro caso: https://pychat-io.herokuapp.com/
@@ -212,4 +199,4 @@ Donde `URI` corresponde a la URI en la que se encuentra el servidor, en nuestro 
 
 ## Manual de uso
 
-El manual de uso de la aplicación se encuentra en el archivo [**README.md**](https://github.com/BFFV/DistributedSystemsP1/blob/main/README.md) disponible en el repositorio de la app.
+El manual de uso de la aplicación se encuentra en el archivo [**README.txt**](README.txt) disponible en el repositorio de la app.
