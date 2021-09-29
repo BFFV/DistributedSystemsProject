@@ -24,11 +24,11 @@ def broadcast_past_messages(sid=None):
 
 
 # Obtain ip/port/id for private messaging, and send private message.
-def private(username):
-    ip, port, node_id = sv.get_user_connections(username)
+def private(username_target, username_sender):
+    ip, port, node_id = sv.get_user_connections(username_target)
     socketio.emit('send_private_msg', {
         'ip': ip, 'port': port, 'id': node_id,
-        'origin': username}, room=request.sid)
+        'sender': username_sender, 'target': username_target}, room=request.sid)
 
 
 # Revert server to initial state
@@ -55,7 +55,7 @@ def command_handler(msg):
             res = 'Invalid username for private message!'
             socketio.emit('event', res, room=request.sid)
             return True
-        private(username)
+        private(username, sv[request.sid])
         return True
     if message[0] == '$reset':  # Reset command
         try:
