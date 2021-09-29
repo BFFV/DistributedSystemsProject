@@ -28,13 +28,13 @@ Opción B: Instalarlas desde el archivo 'requirements.txt' incluido en la entreg
 
 * Servidor
 
-Para correr el servidor localmente, ejecutar la siguiente línea dentro de la carpeta 'chat_app': "python3 __init__.py -N"
-Donde N corresponde a cualquier número entero positivo (ej: "python3 __init__.py -2").
+Para correr el servidor localmente, ejecutar la siguiente línea dentro de la carpeta 'server': "python3 main.py -N"
+Donde N corresponde a cualquier número entero positivo (ej: "python3 main.py -2").
 
 * Cliente
 
-Para correr un cliente, ejecutar la siguiente línea dentro de la carpeta 'client': "python3 client.py URI"
-Donde URI corresponde a la URI en la que se encuentra el servidor (http://IP:5000). Por ejemplo "python3 client.py http://192.168.1.110:5000".
+Para correr un cliente, ejecutar la siguiente línea dentro de la carpeta 'client': "python3 main.py URI"
+Donde URI corresponde a la URI en la que se encuentra el servidor (http://IP:5000). Por ejemplo "python3 main.py http://192.168.1.110:5000".
 
 - La IP del servidor se puede ver en la consola del servidor al momento de ejecutarlo, el puerto es siempre el 5000.
 - Si no entregas el argumento URI, se asume que estás intentando conectarte a un servidor local en http://127.0.0.1:5000.
@@ -47,10 +47,9 @@ Los clientes del chat pueden enviar mensajes, y además tienen a su disposición
 
 * Consideraciones
 
-- Es posible enviar mensajes de cualquier tipo antes de que se unan los primeros N usuarios,
- pero no se podrán ver hasta que el chat se active.
+- Es posible enviar mensajes de cualquier tipo antes de que se unan los primeros N usuarios, pero no se podrán ver hasta que el chat se active.
 
-- Cuando el número de usuarios conectados alcance el valor N, el chat quedará activado permanentemente,
-a menos que se utilice el comando `$reset -N` desde algún cliente. Este último comando permite volver a fijar un valor de N y reiniciar todo.
+- Cuando el número de usuarios conectados alcance el valor N, el chat quedará activado permanentemente, a menos que se utilice el comando `$reset -N` desde algún cliente. 
+Este último comando permite volver a fijar un valor de N y reiniciar todo.
 
 - Los comandos especiales del cliente ('$exit', '$private', '$reset') son indicados dentro de la interfaz del chat.
