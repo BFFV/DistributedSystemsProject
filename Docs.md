@@ -59,23 +59,8 @@ Como equipo decidimos utilizar la arquitectura **cliente-servidor** con estructu
 
 El servidor y la comunicación con este se realizó utilizando el lenguaje [**Python 3**](https://docs.python.org/3.7/), sobre la librería [**Flask**](https://flask.palletsprojects.com/en/2.0.x/). Mientras que para la comunicación privada entre clientes utilizamos la librería [**p2pnetwork**](https://github.com/macsnoeren/python-p2p-network).
 
-- Recomendamos usar **virtualenv** con Python 3.7+. De no estar instalado en su entorno de trabajo, debe instalar virtualenv (`pip3 install virtualenv`).
-- En la carpeta raíz del repositorio, ejecutar la siguiente línea para crear el entorno virtual:
-
-```
-virtualenv venv
-```
-
-- Luego, deberás ejecutar la siguiente línea cada vez que quieras entrar al entorno virtual:
-
-  ```
-  source venv/bin/activate
-  ```
-  * NOTA: Si estás en Windows, este comando cambia a: ``source venv/Scripts/activate`` (ejecutando desde bash, sino se debe correr el ``activate.bat`` que se encuentra en dicho path desde Powershell o CMD)
-
-- En tu terminal debería aparecer un indicativo `(venv)`, el cual te informa que ya estás dentro del entorno virtual.
-
-- Finalmente, instalar los paquetes necesarios con `pip install -r requirements.txt` (este paso solo es necesario la primera vez).
+- Recomendamos usar **virtualenv** con Python 3.7+.
+- Las librerías requeridas se encuentran dentro del archivo ``requirements.txt``.
 
 ### *Deployment*
 
@@ -140,7 +125,7 @@ Dentro de **main.py** se encuentran las siguientes funciones principales:
           socketio.emit('response') # solo si corresponde
   ```
 
-  Esta función cumple con configurar la aplicación en **Flask** y responder a las señales recibidas con la lógica de **SocketIo**.
+  Esta función cumple con configurar la aplicación en **Flask** y responder a las señales recibidas con la lógica de **SocketIO**.
 
 ### Client
 
