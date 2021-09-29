@@ -193,6 +193,10 @@ python3 client/main.py URI
 
 Donde `URI` corresponde a la URI en la que se encuentra el servidor, en nuestro caso: https://pychat-io.herokuapp.com/
 
+## Protocolo de Migración
+
+![Diagrama del protocolo de migración](https://i.imgur.com/9faygIn.png)
+
 ## Dev Notes
 
 - El P2P no es posible aún entre redes de distintos lugares, debido a que se requiere la implementación de alguna estrategia tipo NAT Hole Punching o Port Forwarding para pasar a través de los routers privados.
