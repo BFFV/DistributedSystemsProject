@@ -18,12 +18,10 @@ Profesor: Javier Bustos
 
 - flask
 - flask_socketio
-- flask_cors
-- flask_migrate
 - p2pnetwork
 - requests
 
-Opción A: Instalarlas con el comando: "python3 -m pip install flask flask-socketio flask-cors Flask-Migrate p2pnetwork requests"
+Opción A: Instalarlas con el comando: "python3 -m pip install flask flask-socketio p2pnetwork requests"
 
 Opción B: Instalarlas desde el archivo 'requirements.txt' incluido en la entrega, con el comando: "python3 -m pip install -r requirements.txt" 
 (debe estar parado en la misma carpeta que el archivo para que funcione)
@@ -55,4 +53,4 @@ Los clientes del chat pueden enviar mensajes, y además tienen a su disposición
 - Cuando el número de usuarios conectados alcance el valor N, el chat quedará activado permanentemente,
 a menos que se utilice el comando `$reset -N` desde algún cliente. Este último comando permite volver a fijar un valor de N y reiniciar todo.
 
-- Los comandos especiales del cliente (`$exit`, `$private`, `$reset`) son indicados dentro de la interfaz del chat.
+- Los comandos especiales del cliente ('$exit', '$private', '$reset') son indicados dentro de la interfaz del chat.

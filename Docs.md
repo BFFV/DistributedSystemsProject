@@ -1,3 +1,15 @@
+# Grupo 3 - Sistemas Distribuidos
+
+***Integrantes:***
+- *Juan Aguillón* ([@vikingjuan](https://github.com/vikingjuan))
+- *Benjamín Farías* ([@BFFV](https://github.com/BFFV))
+- *Tomás García* ([@tgarcia5](https://github.com/tgarcia5))
+- *Francisco Guíñez* ([@fguinez](https://github.com/fguinez))
+- *Christian Klempau* ([@Christian-Klempau](https://github.com/Christian-Klempau))
+- *Amaranta Salas* ([@amyaranta](https://github.com/amyaranta))
+
+***Profesor:** Javier Bustos*
+
 # Chat App
 
 En el siguiente documento detallaremos el proceso de desarrollo de la aplicación Chat App, correspondiente a los requerimientos, arquitectura, componentes, *testing* y manuales de uso (*end user*).
@@ -6,27 +18,25 @@ En el siguiente documento detallaremos el proceso de desarrollo de la aplicació
 | ------------------- | ------------------------------------------------------------ |
 | Épica               | Chat distribuido simple y mensajes privados                  |
 | Estado de Documento | Borrador                                                     |
-| Equipo              | *Juan Aguillón* ([@vikingjuan](https://github.com/vikingjuan)) <br />*Benjamín Farías* ([@BFFV](https://github.com/BFFV)) <br />*Tomás García* ([@tgarcia5](https://github.com/tgarcia5)) <br />*Francisco Guíñez* ([@fguinez](https://github.com/fguinez))<br />*Christian Klempau* ([@Christian-Klempau](https://github.com/Christian-Klempau))<br />*Amaranta Salas* ([@amyaranta](https://github.com/amyaranta)) |
 
 | Versión (Entrega)   | 2    |
 | ------------------- | ---- |
 | Épica               | -    |
 | Estado de Documento | -    |
-| Equipo              | -    |
 
 | Versión (Entrega)   | 3    |
 | ------------------- | ---- |
 | Épica               | -    |
 | Estado de Documento | -    |
-| Equipo              | -    |
 
-
+| Versión (Entrega)   | 4    |
+| ------------------- | ---- |
+| Épica               | -    |
+| Estado de Documento | -    |
 
 ## Requerimientos
 
 Se presentan los requerimientos del sistema solicitado mediante *user stories*:
-
-
 
 | #                    | Título                        | Descripción                                                  | Prioridad | Notas                                                        |
 | -------------------- | ----------------------------- | ------------------------------------------------------------ | --------- | ------------------------------------------------------------ |
@@ -39,12 +49,11 @@ Se presentan los requerimientos del sistema solicitado mediante *user stories*:
 | <a name="req7">7</a> | Salir del servidor            | Un usuario puede salir del servidor mediante comando         | Baja      | - Para poder salir sin cerrar de manera indirecta (cerrar consola, ctrl + c) |
 
 
-
 ## Arquitectura
 
 Como equipo decidimos utilizar la arquitectura **cliente-servidor** con estructura **monolítica**. 
 
-El servidor se encuentra montado sobre un contenedor Dynos de Heroku disponible en: https://pychat-io.herokuapp.com/.
+**(Tarea 1)** Un servidor de producción se encuentra montado sobre un contenedor Dynos de Heroku disponible en: https://pychat-io.herokuapp.com/.
 
 ### *Environment*
 
