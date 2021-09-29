@@ -4,65 +4,38 @@ from socket import socket, AF_INET, SOCK_DGRAM
 from flask import Flask, request
 from flask_socketio import SocketIO
 
+from server import Server
+
 
 # Server
 app = Flask(__name__)
 log = logging.getLogger('werkzeug')
 log.disabled = True
 socketio = SocketIO(app)
-
-
-# Global parameters
-class GlobalParams:
-    def __init__(self) -> None:
-        # Client counter
-        self.N_CLIENTS_REQUIRED = 2
-        self.clients = 0
-
-        # Users
-        self.users = dict()  # Key: socket ID, Value: Username
-        self.user_data = dict()  # Key: Username, Value: IP/Port
-
-        # Usernames set (for quickly checking existence)
-        self.usernames = set()
-
-        # Messages
-        self.messages = []
-
-    def set_params(self, n_clients=2):
-        self.N_CLIENTS_REQUIRED = n_clients
-        self.clients = 0
-        self.users = dict()
-        self.user_data = dict()
-        self.usernames = set()
-        self.messages = []
-        print(f'Server initialized (N = {self.N_CLIENTS_REQUIRED})')
-
-
-gb = GlobalParams()
+sv = Server()
 
 
 # Broadcast queued messages
 def broadcast_past_messages(sid=None):
     if sid is not None:  # Send messages to specific client
-        socketio.emit('msg_queue', gb.messages, room=sid)
+        socketio.emit('msg_queue', sv.messages, room=sid)
     else:  # Send messages to everyone
-        socketio.emit('msg_queue', gb.messages, broadcast=True)
+        socketio.emit('msg_queue', sv.messages, broadcast=True)
 
 
-# Obtain ip/port/id for private messaging
-def private(username):
-    ip, port, node_id = gb.user_data[username]
+# Obtain ip/port/id for private messaging, and send private message.
+def private(username_target, username_sender):
+    ip, port, node_id = sv.get_user_connections(username_target)
     socketio.emit('send_private_msg', {
         'ip': ip, 'port': port, 'id': node_id,
-        'origin': gb.users[request.sid]}, room=request.sid)
+        'sender': username_sender, 'target': username_target}, room=request.sid)
 
 
 # Revert server to initial state
 def reset_server(new_n):
     print(f'Resetting server with N = {new_n} users required')
     socketio.emit('exit', broadcast=True)
-    gb.set_params(n_clients=new_n)
+    sv.set_params(n_clients=new_n)
 
 
 # Parse & delegate different commands
@@ -78,11 +51,11 @@ def command_handler(msg):
             socketio.emit('event', res, room=request.sid)
             return True
         username = message[1]
-        if username not in (gb.usernames - set(gb.users[request.sid])):
+        if username not in (sv.usernames - set(sv[request.sid])):
             res = 'Invalid username for private message!'
             socketio.emit('event', res, room=request.sid)
             return True
-        private(username)
+        private(username, sv[request.sid])
         return True
     if message[0] == '$reset':  # Reset command
         try:
@@ -119,12 +92,12 @@ def get_local_ip():
 def handle_message(data):
     # Parse message
     if not command_handler(data):
-        # Normal message
-        message = f'{gb.users[request.sid]}: {data}'
-        gb.messages.append(message)
+        # Normal message: "(USERNAME): MESSAGE"
+        message = f'{sv[request.sid]}: {data}'
+        sv.messages.append(message)
 
         # Broadcast message
-        if gb.clients >= gb.N_CLIENTS_REQUIRED:
+        if sv.n_clients >= sv.N_CLIENTS_REQUIRED:
             socketio.emit('response', message, broadcast=True)
 
 
@@ -139,12 +112,10 @@ def handle_login(data):
         return
 
     # New user
-    if user not in gb.usernames:
-        gb.clients += 1
-        gb.users[request.sid] = user
-        gb.user_data[user] = (data['ip'], data['port'], data['id'])
-        gb.usernames.add(user)
-        socketio.emit('users', gb.clients, broadcast=True)
+    if user not in sv.usernames:
+        sv.build_user(user, request.sid, data['ip'], data['port'], data['id'])
+
+        socketio.emit('users', sv.n_clients, broadcast=True)
         socketio.emit('accepted', room=request.sid)
     else:  # Login failed
         socketio.emit('denied', f'{user} is already in use!', room=request.sid)
@@ -152,12 +123,12 @@ def handle_login(data):
 
     # Check if N required clients have joined
     join_msg = f'{user} has joined the chat!'
-    gb.messages.append(join_msg)
-    if gb.clients == gb.N_CLIENTS_REQUIRED:
+    sv.messages.append(join_msg)
+    if sv.n_clients == sv.N_CLIENTS_REQUIRED:
         print('Chat is now active!')
         broadcast_past_messages()
-        gb.N_CLIENTS_REQUIRED = -1  # Chat is permanent from now on
-    elif gb.clients > gb.N_CLIENTS_REQUIRED:
+        sv.N_CLIENTS_REQUIRED = -1  # Chat is permanent from now on
+    elif sv.n_clients > sv.N_CLIENTS_REQUIRED:
         broadcast_past_messages(request.sid)
         socketio.emit('response', join_msg, broadcast=True,
                       include_self=False)
@@ -166,16 +137,17 @@ def handle_login(data):
 # User disconnects
 @socketio.on('disconnect')
 def disconnect():
-    username = gb.users.pop(request.sid, False)
+    user = sv.users.pop(request.sid, False)
+    username = user.username
     if username:
-        gb.clients -= 1
-        gb.usernames.remove(username)
+        sv.n_clients -= 1
+        sv.usernames.remove(username)
         socketio.emit(
-            'users', gb.clients, broadcast=True, include_self=False)
+            'users', sv.n_clients, broadcast=True, include_self=False)
         msg = f'{username} has left the chat!'
-        if gb.clients > gb.N_CLIENTS_REQUIRED:
+        if sv.n_clients > sv.N_CLIENTS_REQUIRED:
             socketio.emit('response', msg)
-        gb.messages.append(msg)
+        sv.messages.append(msg)
 
 # *******************************************************************
 
@@ -184,15 +156,15 @@ def disconnect():
 if __name__ == '__main__':
     if len(sys.argv) > 1:
         try:
-            gb.N_CLIENTS_REQUIRED = abs(int(sys.argv[1][1:]))
+            sv.N_CLIENTS_REQUIRED = abs(int(sys.argv[1][1:]))
         except ValueError:
             notify_input_error()
             exit()
     server_ip = get_local_ip()
     server_port = 5000
     print(f'LAN Server URI: http://{server_ip}:{server_port}')
-    print(f'Server initialized (N = {gb.N_CLIENTS_REQUIRED})')
-    print(f'Waiting for {gb.N_CLIENTS_REQUIRED} clients to join...')
+    print(f'Server initialized (N = {sv.N_CLIENTS_REQUIRED})')
+    print(f'Waiting for {sv.N_CLIENTS_REQUIRED} clients to join...')
     try:
         socketio.run(app, host='0.0.0.0', port=server_port)
     except KeyboardInterrupt:

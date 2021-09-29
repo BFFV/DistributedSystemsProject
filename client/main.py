@@ -175,7 +175,7 @@ def send_private_message(data):
         p2p.connect(p2p_node, data['ip'], data['port'])
     peer = p2p.get_peer(p2p_node, data)
     if peer:
-        private_message = f'(PRIVATE) {data["origin"]}: {private_msg}'
+        private_message = f'(PRIVATE) ({data["sender"]}) -> ({data["target"]}): {private_msg}'
         p2p_node.send_to_node(peer, private_message)
         chat.append('\n' + private_message)
         print_lock.acquire()
