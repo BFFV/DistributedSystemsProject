@@ -12,6 +12,7 @@ from threading import Lock
 sio = socketio.Client()
 connected = False
 accepted = False
+sio_lock = Lock()
 
 # Users
 count = 1  # User count
@@ -111,6 +112,7 @@ def send_message():
     message = input()
     print('')
     msg = message.strip().split()
+    sio_lock.acquire()
     if msg and msg[0] == '$exit':  # Exit program
         raise KeyboardInterrupt
     if msg and msg[0] == '$private':  # Private message
@@ -124,6 +126,7 @@ def send_message():
         print_lock.release()
         raise KeyboardInterrupt
     sio.emit('message', message)
+    sio_lock.release()
 
 
 # Update user count
@@ -221,11 +224,23 @@ def create_server(data):
     n_clients = data['n_clients']
     ip = data['ip']
     port = data['port']
+
+    # NOTE: Change stdout from "subprocess.DEVNULL" to "None" for debugging
     subprocess.Popen(['python3', f'{current_dir}/../server/chat_server.py',
                       f'-{n_clients}', f'{server_port}', 'new', f'{ip}:{port}'],
-                     stdout=None, stderr=subprocess.DEVNULL)
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-# TODO: Reconnect to new server (after migration)
+
+@sio.on('reconnect')
+def reconnect(new_server):
+    sio_lock.acquire()
+    sio.disconnect()
+    sio.sleep(1)
+    sio.connect(new_server)
+    sio.emit('login', {
+        'ip': p2p_node.host, 'port': p2p_node.port, 'id': p2p_node.id
+    })
+    sio_lock.release()
 
 
 # Run client

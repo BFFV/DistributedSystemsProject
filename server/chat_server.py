@@ -76,7 +76,9 @@ def handle_message(data):
     if not command_handler(data):
         # Normal message: "USERNAME: MESSAGE"
         message = f'{sv[request.sid]}: {data}'
+        sv.messages_lock.acquire()
         sv.messages.append(message)
+        sv.messages_lock.release()
 
         # Broadcast message
         if sv.n_clients >= sv.N_CLIENTS_REQUIRED:
@@ -86,6 +88,18 @@ def handle_message(data):
 # Process login for each user
 @socketio.on('login')
 def handle_login(data):
+    # Check old users
+    c_data = f'{data["ip"]}:{data["port"]}'
+    if c_data in sv.old_users:
+        user = sv.old_users[c_data]
+        sv.build_user(user, request.sid, data['ip'], data['port'], data['id'])
+        if sv.n_clients == sv.N_CLIENTS_REQUIRED:
+            print('Chat is now active!')
+            broadcast_past_messages()
+            sv.N_CLIENTS_REQUIRED = -1  # Chat is permanent from now on
+        return
+
+    # Check new users
     user = data['user']
 
     # Invalid username
@@ -94,7 +108,6 @@ def handle_login(data):
         return
 
     # New user
-    # TODO: If user ip/port is old, then don't tell him anything (transparent)
     if user not in sv.usernames:
         sv.build_user(user, request.sid, data['ip'], data['port'], data['id'])
         socketio.emit('users', sv.n_clients, broadcast=True)
@@ -105,7 +118,9 @@ def handle_login(data):
 
     # Check if N required clients have joined
     join_msg = f'{user} has joined the chat!'
+    sv.messages_lock.acquire()
     sv.messages.append(join_msg)
+    sv.messages_lock.release()
     if sv.n_clients == sv.N_CLIENTS_REQUIRED:
         print('Chat is now active!')
         broadcast_past_messages()
@@ -129,23 +144,31 @@ def disconnect():
         msg = f'{username} has left the chat!'
         if sv.n_clients > sv.N_CLIENTS_REQUIRED:
             socketio.emit('response', msg)
+        sv.messages_lock.acquire()
         sv.messages.append(msg)
+        sv.messages_lock.release()
 
 
 # Migrate to new server
 @socketio.on('migrate')
 def migrate(data):
     sv.migrator.migrate_data(data)
+    sv.sio.stop()
 
 
 # Prepare new server
 @socketio.on('prepare')
 def prepare(data):
-    print(data)
-    # TODO: Save old users and put their names in old_usernames
-    # TODO: Connect client to relay server and register as current server
-    # TODO: Start migrator timer
-    pass
+    sv.old_users = data['users']
+    sv.messages_lock.acquire()
+    sv.messages = data['messages']
+    sv.messages_lock.release()
+    sv.relay = data['relay']
+    sv.client.connect(sv.relay)
+    sv.client.emit('register', [sv.ip, sv.port])
+    sv.client.disconnect()
+    print('\nFinished receiving data from previous server!\n')
+    sv.migrator.start()
 
 
 # TODO: Add delayed messages from old server
@@ -163,7 +186,11 @@ if __name__ == '__main__':
     server_n = abs(int(sys.argv[1][1:]))
     server_port = sys.argv[2]
     server_type = sys.argv[3]
-    sv = Server(get_local_ip(), server_port, socketio, sio_client,
+    local_ip = get_local_ip()
+    relay = ''
+    if server_type == 'original':
+        relay = f'http://{local_ip}:{5000}'
+    sv = Server(local_ip, server_port, socketio, sio_client, relay,
                 start=server_type != 'new')
     sv.N_CLIENTS_REQUIRED = server_n
     if server_type == 'new':
@@ -172,6 +199,7 @@ if __name__ == '__main__':
         sio_client.connect(old_server_uri)
         new_server = f'http://{sv.ip}:{sv.port}'
         sio_client.emit('migrate', new_server)
+        sio_client.disconnect()
     try:
         socketio.run(app, host='0.0.0.0', port=server_port)
     except KeyboardInterrupt:

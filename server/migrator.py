@@ -4,14 +4,14 @@ from time import sleep
 
 # Migrator thread
 class Migrator(Thread):
-    def __init__(self, server, interval=5):
+    def __init__(self, server, interval=30):
         super().__init__()
         self.server = server
         self.interval = interval
         self.daemon = True
 
     # Start migration to client machine
-    def run(self) -> None:
+    def run(self):
         # Initial timer
         self.wait_interval()
         self.interval = 5
@@ -28,13 +28,21 @@ class Migrator(Thread):
 
     # Migrate data to new server
     def migrate_data(self, new_server):
+        print(f'\nMigrating to {new_server}...\n')
         self.server.client.connect(new_server)
-
-        # TODO: Send usernames/ip_port and messages to new server
-        # TODO: Clear messages and tell clients to connect to new server (lock)
+        users_info = {f'{x.ip}:{x.port}': x.username
+                      for x in self.server.users.values()}
+        self.server.messages_lock.acquire()
+        chat_data = {'users': users_info, 'messages': self.server.messages,
+                     'relay': self.server.relay}
+        self.server.messages = []
+        self.server.messages_lock.release()
+        self.server.client.emit('prepare', chat_data)
+        self.server.sio.emit('reconnect', new_server)
         # TODO: Wait for 2 seconds while collecting delayed messages
         # TODO: Send delayed messages to new server and then exit()
         self.server.client.disconnect()
+        print('\nFinished migrating, exiting server...\n')
 
     # Waiting interval
     def wait_interval(self):

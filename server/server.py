@@ -2,23 +2,26 @@ from migrator import Migrator
 from random import choice
 from socket import socket, AF_INET, SOCK_DGRAM, SOCK_STREAM
 from user import User
+from threading import Lock
 
 
 # Chat server
 class Server:
-    def __init__(self, ip, port, sio, sio_client, start=True) -> None:
+    def __init__(self, ip, port, sio, sio_client, relay_uri, start=True):
         # Client counter
         self.N_CLIENTS_REQUIRED = 2
         self.n_clients = 0
 
         # Users
-        self.users = dict()  # Key: socket ID, Value: Username
+        self.users = dict()  # Key: socket ID, Value: User object
+        self.old_users = dict()  # Key: "ip:port", Value: (username, node_id)
 
         # Usernames set (for quickly checking existence)
         self.usernames = set()
 
         # Messages
         self.messages = []
+        self.messages_lock = Lock()
 
         # Migration thread
         self.migrator = Migrator(self)
@@ -30,6 +33,9 @@ class Server:
         self.port = port
         self.sio = sio
         self.client = sio_client
+
+        # Relay server
+        self.relay = relay_uri
 
     # Update params for server
     def set_params(self, n_clients=2):

@@ -57,10 +57,12 @@ if __name__ == '__main__':
     # Run first chat server
     chat_server_port = get_free_port()
     current_dir = os.path.dirname(os.path.realpath(__file__))
+
+    # NOTE: Change stdout from 'subprocess.DEVNULL' to 'None' for debugging
     subprocess.Popen(['python3', f'{current_dir}/chat_server.py',
                       f'-{N_CLIENTS_REQUIRED}',
                       f'{chat_server_port}', 'original'],
-                     stdout=None, stderr=subprocess.DEVNULL)
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     SERVER = [server_ip, chat_server_port]
 
     # Run
