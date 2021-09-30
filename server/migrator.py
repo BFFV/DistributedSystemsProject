@@ -3,12 +3,12 @@ from time import sleep
 
 
 # Migrator thread
-class Migrator(Thread):
+class Migrator:
     def __init__(self, server, interval=30):
         super().__init__()
         self.server = server
         self.interval = interval
-        self.daemon = True
+        self.timer = Thread(target=self.run, daemon=True)
 
     # Start migration to client machine
     def run(self):
@@ -23,27 +23,23 @@ class Migrator(Thread):
         # Create new server from client
         chosen = self.server.find_future_server()
         data = {'n_clients': self.server.N_CLIENTS_REQUIRED,
-                'ip': self.server.ip, 'port': self.server.port}
+                'ip': self.server.ip, 'port': self.server.port,
+                'relay': self.server.relay}
         self.server.sio.emit('create_server', data, room=chosen)
 
     # Migrate data to new server
-    def migrate_data(self, new_server):
-        self.server.client.connect(self.server.relay)
-        self.server.client.emit('migrating')
-        self.server.client.disconnect()
-        self.server.client.sleep(1)
+    def migrate_data(self, new_server, sid):
+        self.server.new_server = new_server
+        self.server.relay_client.emit('migrating')
         print(f'\nMigrating to {new_server}...\n')
-        self.server.client.connect(new_server)
         users_info = {f'{x.ip}:{x.port}': x.username
                       for x in self.server.users.values()}
         self.server.messages_lock.acquire()
-        chat_data = {'users': users_info, 'messages': self.server.messages,
-                     'relay': self.server.relay}
+        chat_data = {'users': users_info, 'messages': self.server.messages}
         self.server.messages = []
         self.server.messages_lock.release()
         self.server.migrating = True
-        self.server.client.emit('prepare', chat_data)
-        self.server.client.disconnect()
+        self.server.sio.emit('prepare', chat_data, room=sid)
 
     # Waiting interval
     def wait_interval(self):

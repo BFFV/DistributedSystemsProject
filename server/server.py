@@ -7,7 +7,8 @@ from threading import Lock
 
 # Chat server
 class Server:
-    def __init__(self, ip, port, sio, sio_client, relay_uri, start=True):
+    def __init__(self, ip, port, sio, sio_client, relay_client, relay_uri,
+                 start=True):
         # Client counter
         self.N_CLIENTS_REQUIRED = 2
         self.n_clients = 0
@@ -27,7 +28,7 @@ class Server:
         self.migrating = False
         self.migrator = Migrator(self)
         if start:
-            self.migrator.start()
+            self.migrator.timer.start()
 
         # Connection data
         self.ip = ip
@@ -37,6 +38,13 @@ class Server:
 
         # Relay server
         self.relay = relay_uri
+        self.relay_client = relay_client
+
+        # Old server
+        self.old_server = ''
+
+        # New server
+        self.new_server = ''
 
     # Update params for server
     def set_params(self, n_clients=2):

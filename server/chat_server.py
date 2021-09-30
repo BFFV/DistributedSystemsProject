@@ -1,4 +1,5 @@
 import logging
+import requests
 import socketio as socketio_client
 import sys
 from flask import Flask, request
@@ -12,6 +13,7 @@ log = logging.getLogger('werkzeug')
 log.disabled = True
 socketio = SocketIO(app)
 sio_client = socketio_client.Client()
+rel_client = socketio_client.Client()
 
 
 # Broadcast queued messages
@@ -152,33 +154,31 @@ def disconnect():
 # Migrate to new server
 @socketio.on('migrate')
 def migrate(data):
-    sv.migrator.migrate_data(data)
+    sv.migrator.migrate_data(data, request.sid)
 
 
 # Prepare new server
-@socketio.on('prepare')
+@sio_client.on('prepare')
 def prepare(data):
     sv.old_users = data['users']
     sv.messages_lock.acquire()
     sv.messages = data['messages']
     sv.messages_lock.release()
-    sv.client.emit('ready', f'http://{sv.ip}:{sv.port}')
-    sv.client.disconnect()
-    sv.client.sleep(1)
-    sv.relay = data['relay']
-    sv.client.connect(sv.relay)
-    sv.client.emit('register', [sv.ip, sv.port])
-    sv.client.disconnect()
+    requests.get(f'{sv.old_server}/stop')
+    sv.relay_client.emit('register', [sv.ip, sv.port])
     print('\nFinished receiving data from previous server!\n')
-    sv.migrator.start()
+    sv.migrator.timer.start()
 
 
 # New server is ready
-@socketio.on('ready')
-def ready(data):
+@app.route('/stop')
+def stop():
     print('\nFinished migrating, exiting server...\n')
-    sv.sio.emit('reconnect', data)
+    sv.client.disconnect()
+    sv.relay_client.disconnect()
+    sv.sio.emit('reconnect', sv.new_server)
     sv.sio.stop()
+    return ''
 
 # *******************************************************************
 
@@ -189,19 +189,26 @@ if __name__ == '__main__':
     server_port = sys.argv[2]
     server_type = sys.argv[3]
     local_ip = get_local_ip()
-    relay = ''
     if server_type == 'original':
         relay = f'http://{local_ip}:{5000}'
-    sv = Server(local_ip, server_port, socketio, sio_client, relay,
+    else:
+        relay = sys.argv[5]
+    sv = Server(local_ip, server_port, socketio, sio_client, rel_client, relay,
                 start=server_type != 'new')
     sv.N_CLIENTS_REQUIRED = server_n
+    sv.relay_client.connect(sv.relay)
     if server_type == 'new':
         old_server = sys.argv[4]
         old_server_uri = f'http://{old_server}'
-        sio_client.connect(old_server_uri)
+        sv.old_server  = old_server_uri
+        sv.client.connect(old_server_uri)
         new_server = f'http://{sv.ip}:{sv.port}'
-        sio_client.emit('migrate', new_server)
+        sv.client.emit('migrate', new_server)
+    else:
+        sv.client.connect(sv.relay)
     try:
         socketio.run(app, host='0.0.0.0', port=server_port)
     except KeyboardInterrupt:
+        pass
+    finally:
         exit()
