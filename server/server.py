@@ -24,6 +24,7 @@ class Server:
         self.messages_lock = Lock()
 
         # Migration thread
+        self.migrating = False
         self.migrator = Migrator(self)
         if start:
             self.migrator.start()

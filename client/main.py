@@ -11,6 +11,7 @@ from threading import Lock
 # Socket IO client
 sio = socketio.Client()
 connected = False
+connecting = False
 accepted = False
 sio_lock = Lock()
 
@@ -112,19 +113,21 @@ def send_message():
     message = input()
     print('')
     msg = message.strip().split()
-    sio_lock.acquire()
     if msg and msg[0] == '$exit':  # Exit program
         raise KeyboardInterrupt
     if msg and msg[0] == '$private':  # Private message
         if len(msg) >= 3:
             private_msg = ' '.join(msg[2:])
+            sio_lock.acquire()
             sio.emit('message', ' '.join(msg[:2]))  # To protect private text
+            sio_lock.release()
             return
     if not accepted:  # Server was reset
         print_lock.acquire()
         print('Closing client due to server reset!\n')
         print_lock.release()
         raise KeyboardInterrupt
+    sio_lock.acquire()
     sio.emit('message', message)
     sio_lock.release()
 
@@ -176,7 +179,8 @@ def send_private_message(data):
     global private_ready
     private_ready = False
     peer = p2p.get_peer(p2p_node, data)
-    if not peer:
+    if not peer and not \
+            (p2p_node.host == data['ip'] and p2p_node.port == data['port']):
         p2p.connect(p2p_node, data['ip'], data['port'])
     peer = p2p.get_peer(p2p_node, data)
     if peer:
@@ -209,11 +213,15 @@ def private_event(event, this, other, data):
 # Connect to real server
 @sio.on('connect_to_chat')
 def connect_to_chat(data):
-    global connected
+    global connected, connecting
     sio.disconnect()
     sio.sleep(1)
-    sio.connect(f'http://{data[0]}:{data[1]}')
-    connected = True
+    try:
+        sio.connect(f'http://{data[0]}:{data[1]}')
+        connected = True
+    except exc.ConnectionError:
+        connected = False
+    connecting = False
 
 
 # Create new server from this client
@@ -235,11 +243,16 @@ def create_server(data):
 def reconnect(new_server):
     sio_lock.acquire()
     sio.disconnect()
-    sio.sleep(1)
-    sio.connect(new_server)
-    sio.emit('login', {
-        'ip': p2p_node.host, 'port': p2p_node.port, 'id': p2p_node.id
-    })
+    # TODO: Check this part for connection errors sometimes
+    sio.sleep(2)
+    try:
+        sio.connect(new_server)
+    except exc.ConnectionError:
+        pass
+    if accepted:
+        sio.emit('login', {
+            'ip': p2p_node.host, 'port': p2p_node.port, 'id': p2p_node.id
+        })
     sio_lock.release()
 
 
@@ -257,7 +270,9 @@ if __name__ == '__main__':
         sio.connect(uri)
         sio.emit('connect_to_chat')
         while not connected:
-            pass
+            if not connecting and not connected:
+                sio.emit('connect_to_chat')
+                connecting = True
         user_login()
         while not accepted:
             pass

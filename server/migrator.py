@@ -28,6 +28,10 @@ class Migrator(Thread):
 
     # Migrate data to new server
     def migrate_data(self, new_server):
+        self.server.client.connect(self.server.relay)
+        self.server.client.emit('migrating')
+        self.server.client.disconnect()
+        self.server.client.sleep(1)
         print(f'\nMigrating to {new_server}...\n')
         self.server.client.connect(new_server)
         users_info = {f'{x.ip}:{x.port}': x.username
@@ -37,16 +41,13 @@ class Migrator(Thread):
                      'relay': self.server.relay}
         self.server.messages = []
         self.server.messages_lock.release()
+        self.server.migrating = True
         self.server.client.emit('prepare', chat_data)
-        self.server.sio.emit('reconnect', new_server)
-        # TODO: Wait for 2 seconds while collecting delayed messages
-        # TODO: Send delayed messages to new server and then exit()
         self.server.client.disconnect()
-        print('\nFinished migrating, exiting server...\n')
 
     # Waiting interval
     def wait_interval(self):
-        if self.interval < 30:
+        if self.interval == 5:
             print(f'Trying to migrate every {self.interval}s '
                   f'due to no clients!')
         else:

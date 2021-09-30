@@ -16,6 +16,7 @@ socketio = SocketIO(app)
 # Global params
 N_CLIENTS_REQUIRED = 2
 SERVER = []
+MIGRATING = False
 
 
 # Input error handling
@@ -31,13 +32,23 @@ def notify_input_error():
 # Register server
 @socketio.on('register')
 def register(data):
-    global SERVER
+    global SERVER, MIGRATING
     SERVER = data
+    MIGRATING = False
+
+
+# Currently in a migration
+@socketio.on('migrating')
+def migrating():
+    global MIGRATING
+    MIGRATING = True
 
 
 # Listen for clients
 @socketio.on('connect_to_chat')
 def connect():
+    while MIGRATING:
+        pass
     socketio.emit('connect_to_chat', SERVER, room=request.sid)
 
 # *******************************************************************

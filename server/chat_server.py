@@ -103,7 +103,7 @@ def handle_login(data):
     user = data['user']
 
     # Invalid username
-    if (':' in user) or (' ' in user):
+    if (not user) or (':' in user) or (' ' in user):
         socketio.emit('denied', 'Invalid username!', room=request.sid)
         return
 
@@ -135,7 +135,7 @@ def handle_login(data):
 @socketio.on('disconnect')
 def disconnect():
     user = sv.users.pop(request.sid, False)
-    if user:
+    if user and not sv.migrating:
         username = user.username
         sv.n_clients -= 1
         sv.usernames.remove(username)
@@ -153,7 +153,6 @@ def disconnect():
 @socketio.on('migrate')
 def migrate(data):
     sv.migrator.migrate_data(data)
-    sv.sio.stop()
 
 
 # Prepare new server
@@ -163,6 +162,9 @@ def prepare(data):
     sv.messages_lock.acquire()
     sv.messages = data['messages']
     sv.messages_lock.release()
+    sv.client.emit('ready', f'http://{sv.ip}:{sv.port}')
+    sv.client.disconnect()
+    sv.client.sleep(1)
     sv.relay = data['relay']
     sv.client.connect(sv.relay)
     sv.client.emit('register', [sv.ip, sv.port])
@@ -171,19 +173,19 @@ def prepare(data):
     sv.migrator.start()
 
 
-# TODO: Add delayed messages from old server
-# Add delayed messages from old server
-@socketio.on('delayed_messages')
-def update_messages():
-    # TODO: Add delayed messages
-    pass
+# New server is ready
+@socketio.on('ready')
+def ready(data):
+    print('\nFinished migrating, exiting server...\n')
+    sv.sio.emit('reconnect', data)
+    sv.sio.stop()
 
 # *******************************************************************
 
 
 # Run chat server
 if __name__ == '__main__':
-    server_n = abs(int(sys.argv[1][1:]))
+    server_n = int(sys.argv[1][1:])
     server_port = sys.argv[2]
     server_type = sys.argv[3]
     local_ip = get_local_ip()
@@ -199,7 +201,6 @@ if __name__ == '__main__':
         sio_client.connect(old_server_uri)
         new_server = f'http://{sv.ip}:{sv.port}'
         sio_client.emit('migrate', new_server)
-        sio_client.disconnect()
     try:
         socketio.run(app, host='0.0.0.0', port=server_port)
     except KeyboardInterrupt:
