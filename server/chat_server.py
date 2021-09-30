@@ -1,9 +1,9 @@
-import sys
 import logging
-from socket import socket, AF_INET, SOCK_DGRAM
+import socketio as socketio_client
+import sys
 from flask import Flask, request
 from flask_socketio import SocketIO
-from server import Server
+from server import Server, get_local_ip
 
 
 # Server
@@ -11,6 +11,7 @@ app = Flask(__name__)
 log = logging.getLogger('werkzeug')
 log.disabled = True
 socketio = SocketIO(app)
+sio_client = socketio_client.Client()
 
 
 # Broadcast queued messages
@@ -66,23 +67,6 @@ def command_handler(msg):
     return False
 
 
-# Input error handling
-def notify_input_error():
-    print('Invalid parameters!')
-    print('   Try with:')
-    print('       python3 main.py -[n]')
-    print('   Where [n] is a positive integer.')
-
-
-# Get local ip of the server
-def get_local_ip():
-    s = socket(AF_INET, SOCK_DGRAM)
-    s.connect(('8.8.8.8', 80))
-    ip = s.getsockname()[0]
-    s.close()
-    return ip
-
-
 # ************************** Socket Events **************************
 
 # Listen for messages
@@ -136,8 +120,8 @@ def handle_login(data):
 @socketio.on('disconnect')
 def disconnect():
     user = sv.users.pop(request.sid, False)
-    username = user.username
-    if username:
+    if user:
+        username = user.username
         sv.n_clients -= 1
         sv.usernames.remove(username)
         socketio.emit(
@@ -148,17 +132,16 @@ def disconnect():
         sv.messages.append(msg)
 
 
-# TODO: Migrate data from old server to new server
 # Migrate to new server
 @socketio.on('migrate')
-def migrate():
-    sv.migrator.migrate_data()
+def migrate(data):
+    sv.migrator.migrate_data(data)
 
 
-# TODO: Prepare new server
 # Prepare new server
 @socketio.on('prepare')
-def prepare():
+def prepare(data):
+    print(data)
     # TODO: Save old users and put their names in old_usernames
     # TODO: Connect client to relay server and register as current server
     # TODO: Start migrator timer
@@ -177,23 +160,18 @@ def update_messages():
 
 # Run chat server
 if __name__ == '__main__':
-    # TODO: Check args for new server (new server or original)
-    # TODO: Start timer only if this is the original
-    sv = Server()
-    if len(sys.argv) > 1:
-        try:
-            sv.N_CLIENTS_REQUIRED = abs(int(sys.argv[1][1:]))
-        except ValueError:
-            notify_input_error()
-            exit()
-    server_ip = get_local_ip()
-    server_port = 5001
-    print(f'LAN Server URI: http://{server_ip}:{server_port}')
-    print(f'Server initialized (N = {sv.N_CLIENTS_REQUIRED})')
-    print(f'Waiting for {sv.N_CLIENTS_REQUIRED} clients to join...')
-    # TODO: If server is new, do the following
-    # TODO: Connect client socket to old server
-    # TODO: Tell old server that this server is running (ip and port)
+    server_n = abs(int(sys.argv[1][1:]))
+    server_port = sys.argv[2]
+    server_type = sys.argv[3]
+    sv = Server(get_local_ip(), server_port, socketio, sio_client,
+                start=server_type != 'new')
+    sv.N_CLIENTS_REQUIRED = server_n
+    if server_type == 'new':
+        old_server = sys.argv[4]
+        old_server_uri = f'http://{old_server}'
+        sio_client.connect(old_server_uri)
+        new_server = f'http://{sv.ip}:{sv.port}'
+        sio_client.emit('migrate', new_server)
     try:
         socketio.run(app, host='0.0.0.0', port=server_port)
     except KeyboardInterrupt:

@@ -1,8 +1,10 @@
-import sys
 import logging
-from socket import socket, AF_INET, SOCK_DGRAM
+import os
+import subprocess
+import sys
 from flask import Flask, request
 from flask_socketio import SocketIO
+from server import get_local_ip, get_free_port
 
 
 # Relay server
@@ -13,7 +15,7 @@ socketio = SocketIO(app)
 
 # Global params
 N_CLIENTS_REQUIRED = 2
-SERVER = ()
+SERVER = []
 
 
 # Input error handling
@@ -24,31 +26,19 @@ def notify_input_error():
     print('   Where [n] is a positive integer.')
 
 
-# Get local ip of the server
-def get_local_ip():
-    s = socket(AF_INET, SOCK_DGRAM)
-    s.connect(('8.8.8.8', 80))
-    ip = s.getsockname()[0]
-    s.close()
-    return ip
-
-
 # ************************** Socket Events **************************
 
 # Register server
 @socketio.on('register')
 def register(data):
-    # TODO: Register current server
-    # socketio.emit('connect', SERVER, room=request.sid)
-    return
+    global SERVER
+    SERVER = data
 
 
 # Listen for clients
-@socketio.on('connect')
-def connect(data):
-    # TODO: Tell clients to connect to real server
-    # socketio.emit('connect', SERVER, room=request.sid)
-    return
+@socketio.on('connect_to_chat')
+def connect():
+    socketio.emit('connect_to_chat', SERVER, room=request.sid)
 
 # *******************************************************************
 
@@ -62,11 +52,21 @@ if __name__ == '__main__':
             notify_input_error()
             exit()
     server_ip = get_local_ip()
-    server_port = 5000
-    # TODO: Spawn original server and register it
-    print(f'LAN Server URI: http://{server_ip}:{server_port}')
+    relay_server_port = 5000
+
+    # Run first chat server
+    chat_server_port = get_free_port()
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    subprocess.Popen(['python3', f'{current_dir}/chat_server.py',
+                      f'-{N_CLIENTS_REQUIRED}',
+                      f'{chat_server_port}', 'original'],
+                     stdout=None, stderr=subprocess.DEVNULL)
+    SERVER = [server_ip, chat_server_port]
+
+    # Run
+    print(f'LAN Server URI: http://{server_ip}:{relay_server_port}')
     print(f'Server initialized (N = {N_CLIENTS_REQUIRED})')
     try:
-        socketio.run(app, host='0.0.0.0', port=server_port)
+        socketio.run(app, host='0.0.0.0', port=relay_server_port)
     except KeyboardInterrupt:
         exit()

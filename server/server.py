@@ -1,11 +1,12 @@
-from random import choice
-from user import User
 from migrator import Migrator
+from random import choice
+from socket import socket, AF_INET, SOCK_DGRAM, SOCK_STREAM
+from user import User
 
 
 # Chat server
 class Server:
-    def __init__(self) -> None:
+    def __init__(self, ip, port, sio, sio_client, start=True) -> None:
         # Client counter
         self.N_CLIENTS_REQUIRED = 2
         self.n_clients = 0
@@ -21,6 +22,14 @@ class Server:
 
         # Migration thread
         self.migrator = Migrator(self)
+        if start:
+            self.migrator.start()
+
+        # Connection data
+        self.ip = ip
+        self.port = port
+        self.sio = sio
+        self.client = sio_client
 
     # Update params for server
     def set_params(self, n_clients=2):
@@ -53,4 +62,22 @@ class Server:
 
     # Choose new client to migrate the server
     def find_future_server(self):
-        return choice(self.users)
+        return choice(list(self.users.keys()))
+
+
+# Get local ip of the server
+def get_local_ip():
+    s = socket(AF_INET, SOCK_DGRAM)
+    s.connect(('8.8.8.8', 80))
+    ip = s.getsockname()[0]
+    s.close()
+    return ip
+
+
+# Get a free port in this machine
+def get_free_port():
+    sock = socket(AF_INET, SOCK_STREAM)
+    sock.bind(('', 0))
+    free_port = sock.getsockname()[1]
+    sock.close()
+    return free_port

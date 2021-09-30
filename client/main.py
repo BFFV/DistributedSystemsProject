@@ -1,14 +1,16 @@
-import socketio
-import sys
 import os
 import p2p
-from socketio import exceptions as exc
+import socketio
+import subprocess
+import sys
 from collections import deque
+from socketio import exceptions as exc
 from threading import Lock
 
 
 # Socket IO client
 sio = socketio.Client()
+connected = False
 accepted = False
 
 # Users
@@ -200,8 +202,29 @@ def private_event(event, this, other, data):
         print_state()
         print_lock.release()
 
-# TODO: Connect to real server
-# TODO: Spawn new server (migration)
+
+# Connect to real server
+@sio.on('connect_to_chat')
+def connect_to_chat(data):
+    global connected
+    sio.disconnect()
+    sio.sleep(1)
+    sio.connect(f'http://{data[0]}:{data[1]}')
+    connected = True
+
+
+# Create new server from this client
+@sio.on('create_server')
+def create_server(data):
+    server_port = p2p.get_free_port()
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    n_clients = data['n_clients']
+    ip = data['ip']
+    port = data['port']
+    subprocess.Popen(['python3', f'{current_dir}/../server/chat_server.py',
+                      f'-{n_clients}', f'{server_port}', 'new', f'{ip}:{port}'],
+                     stdout=None, stderr=subprocess.DEVNULL)
+
 # TODO: Reconnect to new server (after migration)
 
 
@@ -214,8 +237,12 @@ if __name__ == '__main__':
     try:
         print(f'Server URI: {uri}')
         print(f'Personal P2P address: {p2p_node.host}:{p2p_node.port}\n')
+
+        # Connect to chat server
         sio.connect(uri)
-        # TODO: Connect to real server
+        sio.emit('connect_to_chat')
+        while not connected:
+            pass
         user_login()
         while not accepted:
             pass
