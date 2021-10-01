@@ -47,6 +47,16 @@ Los clientes del chat pueden enviar mensajes, y además tienen a su disposición
 
 - "$private USER MSG": Enviar un mensaje privado "MSG" (que NO pasa por el servidor) al usuario de nombre USER.
 
+* Arquitectura
+
+La transmisión de mensajes se realiza mediante una arquitectura cliente servidor, con la particularidad de que el
+servidor que transmite los mensajes a los demás clientes migra entre los equipos de los clientes cada 30 segundos.
+
+Para coordinar las migraciones del servidor y otorgar un punto de acceso al chat estable para los clientes,
+añadimos un proceso `migrator`, el cual referencia a la dirección actual del servidor. Por ello, apenas se conecta
+un nuevo cliente, de forma transparente este se está conectando al proceso `migrator`, el cual redirigirá al cliente
+al servidor actual.
+
 * Testing
 
 En la documentación "Docs.md" se pueden encontrar algunas formas de testear la tarea.
