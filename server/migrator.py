@@ -30,6 +30,8 @@ class Migrator:
     # Migrate data to new server
     def migrate_data(self, new_server, sid):
         self.server.new_server = new_server
+        if not self.server.old_server:
+            self.server.relay_client.connect(self.server.relay)
         self.server.relay_client.emit('migrating')
         print(f'\nMigrating to {new_server}...\n')
         users_info = {f'{x.ip}:{x.port}': x.username

@@ -47,6 +47,20 @@ Los clientes del chat pueden enviar mensajes, y además tienen a su disposición
 
 - "$private USER MSG": Enviar un mensaje privado "MSG" (que NO pasa por el servidor) al usuario de nombre USER.
 
+* Arquitectura
+
+La transmisión de mensajes se realiza mediante una arquitectura cliente servidor, con la particularidad de que el
+servidor que transmite los mensajes a los demás clientes migra entre los equipos de los clientes cada 30 segundos.
+
+Para coordinar las migraciones del servidor y otorgar un punto de acceso estable al chat para los clientes,
+añadimos un servidor `relay` (de relevo), el cual referencia a la dirección del servidor actual. Por ello, apenas se conecta
+un nuevo cliente, este será redirigido al servidor actual de forma transparente (es decir, los clientes solo deben conectarse
+al servidor ejecutado según lo explicado en la sección de 'Servidor' más arriba, y no deben conocer la IP/Puerto del servidor `real` del chat).
+
+El servidor de relevo guarda una referencia a la IP y puerto del servidor de chat actual, lo que se actualiza cada 30 segundos.
+Esto permite realizar migraciones transparentes para el cliente, a la vez que asegura que las referencias a los servidores de chat anteriores ya
+no son necesarias, por lo que simplemente se eliminan tras terminar el proceso de migración.
+
 * Testing
 
 En la documentación "Docs.md" se pueden encontrar algunas formas de testear la tarea.
