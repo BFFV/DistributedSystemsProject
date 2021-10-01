@@ -305,8 +305,10 @@ if __name__ == '__main__':
         relay_client.connect(uri)
         while not connected:
             if not connected and not connecting:
+                print("Trying to connect to server...")
                 relay_client.emit('connect_to_chat')
                 connecting = True
+        print("Successful connection to server")
 
         # Enter chat room
         user_login()
@@ -316,6 +318,8 @@ if __name__ == '__main__':
         # Send messages
         while True:
             send_message()
+    except socketio.exceptions.ConnectionError:
+        print("A connection error has occurred, please try to connect again.")
     except (KeyboardInterrupt, exc.ConnectionError):
         pass
     finally:
