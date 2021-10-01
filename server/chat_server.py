@@ -6,7 +6,6 @@ from flask_socketio import SocketIO
 from server import Server, get_local_ip
 
 
-
 # Server
 app = Flask(__name__)
 log = logging.getLogger('werkzeug')
@@ -14,6 +13,12 @@ log.disabled = True
 socketio = SocketIO(app)
 sio_client = socketio_client.Client()
 rel_client = socketio_client.Client()
+
+
+# Write server feedback on '.logs' file
+def fprint(text):
+    with open('.logs', 'a') as logfile:
+        print(text, file=logfile)
 
 
 # Broadcast queued messages
@@ -175,23 +180,16 @@ def prepare(data):
 @socketio.on('ready')
 def ready():
     print('\nFinished migrating, exiting server...\n')
-    if not sv.old_server:
-        sv.client.disconnect()
     sv.relay_client.disconnect()
     sv.sio.emit('reconnect', sv.new_server)
     sv.sio.stop()
 
 # *******************************************************************
 
-# Write server feedback on '.logs' file
-def fprint(text):
-    with open(".logs", 'a') as logfile:
-        print(text, file=logfile)
-
 
 # Run chat server
 if __name__ == '__main__':
-    #fprint("Init server...")
+    # fprint('Init server...')
     server_n = int(sys.argv[1][1:])
     server_port = sys.argv[2]
     server_type = sys.argv[3]
@@ -200,13 +198,10 @@ if __name__ == '__main__':
         relay = f'http://{local_ip}:{5000}'
     else:
         relay = sys.argv[5]
-    #fprint(f"Server relay: {relay}")
+    # fprint(f'Server relay: {relay}')
     sv = Server(local_ip, server_port, socketio, sio_client, rel_client, relay,
                 start=server_type != 'new')
-    #fprint("Conecting with migrator...")
     sv.N_CLIENTS_REQUIRED = server_n
-    
-    #fprint("Migrator's conection success")
     if server_type == 'new':
         sv.relay_client.connect(sv.relay)
         old_server = sys.argv[4]
@@ -216,11 +211,11 @@ if __name__ == '__main__':
         new_server = f'http://{sv.ip}:{sv.port}'
         sv.client.emit('migrate', new_server)
     try:
-        #fprint(f"Run server on port {server_port}")
+        # fprint(f'Running server on port {server_port}')
         socketio.run(app, host='0.0.0.0', port=server_port)
     except KeyboardInterrupt:
-        #fprint("KeyboardInterrupt")
+        # fprint('KeyboardInterrupt')
         pass
     finally:
-        #fprint("Shut down server\n")
+        # fprint('Shutting down server\n')
         exit()
