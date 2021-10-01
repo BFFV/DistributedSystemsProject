@@ -57,6 +57,10 @@ añadimos un proceso `migrator`, el cual referencia a la dirección actual del s
 un nuevo cliente, de forma transparente este se está conectando al proceso `migrator`, el cual redirigirá al cliente
 al servidor actual.
 
+El proceso de migración guarda una referencia a la ip y puerto del servidor, lo cual se actualiza cada 30 segundos.
+Esto permite ordenar realizar migraciones transparentes para el cliente, a la vez que facilita la eliminación
+de las referencias a la antigua posición del servidor.
+
 * Testing
 
 En la documentación "Docs.md" se pueden encontrar algunas formas de testear la tarea.
