@@ -19,10 +19,10 @@ En el siguiente documento detallaremos el proceso de desarrollo de la aplicació
 | Épica               | Chat distribuido simple y mensajes privados                  |
 | Estado de Documento | Borrador                                                     |
 
-| Versión (Entrega)   | 2    |
-| ------------------- | ---- |
-| Épica               | -    |
-| Estado de Documento | -    |
+| Versión (Entrega)   | 2                                             |
+| ------------------- | --------------------------------------------- |
+| Épica               | Migración del servidor de manera transparente |
+| Estado de Documento | Borrador                                      |
 
 | Versión (Entrega)   | 3    |
 | ------------------- | ---- |
@@ -48,6 +48,7 @@ Se presentan los requerimientos del sistema solicitado mediante *user stories*:
 | <a name="req6">6</a> | Ver los mensajes privados     | Un usuario puede ver los mensajes privados enviados por otro usuario | Media     |                                                              |
 | <a name="req7">7</a> | Salir del servidor            | Un usuario puede salir del servidor mediante comando         | Baja      | - Para poder salir sin cerrar de manera indirecta (cerrar consola, ctrl + c) |
 
+**(Tarea 2)** Los requisitos no cambian, ya que, el proceso de migración debe ser transparente para el usuario.
 
 ## Arquitectura
 
@@ -145,6 +146,15 @@ def wrapper(params):
 
 Para la mantención de la aplicación se recomienda realizar una serie de pruebas sobre el funcionamiento del programa mediante **White-box *testing***.
 
+En el directorio **client** dentro del archivo **main.py**, línea 293 tiene disponible una variable para activar el modo debug, con el cual podrá observar el funcionamiento del programa. 
+
+```python
+# Run client
+if __name__ == '__main__':
+    # NOTE: Change this value when debugging
+    debug = True
+```
+
 #### Local
 
 Se dispone del código base del servidor, el cual se puede montar mediante un servidor local corriendo el siguiente comando desde `root`.
@@ -183,7 +193,7 @@ Así se mantienen los requerimientos: [#5](#req5) y [#6](#req6)
 
 Finalmente, probar el comando `$reset -N` y repetir el proceso con una nueva cantidad de usuarios conectados, ya que los anteriores se desconectarán apenas se aprete alguna tecla de input.
 
-#### Producción
+#### Producción **(Tarea 1)**
 
 Para iniciar una prueba en un servidor externo, debe ejecutar el siguiente comando:
 
@@ -196,6 +206,8 @@ Donde `URI` corresponde a la URI en la que se encuentra el servidor, en nuestro 
 ## Protocolo de Migración
 
 ![Diagrama del protocolo de migración](https://i.imgur.com/9faygIn.png)
+
+Puede observar el comportamiento de los procesos utilizando la herramienta disponible en su sistema operativo (Administrador de tareas)
 
 ## Dev Notes
 
