@@ -43,12 +43,11 @@ Se presentan los requerimientos del sistema solicitado mediante *user stories*:
 | <a name="req1">1</a> | Ingreso al servidor           | Un usuario puede ingresar al servidor de chat                | Alta      |                                                              |
 | <a name="req2">2</a> | Envío de mensajes al servidor | Un usuario puede enviar un mensaje al servidor               | Alta      |                                                              |
 | <a name="req3">3</a> | Ver los mensajes              | Un usuario puede ver los mensajes enviados al servidor       | Alta      |                                                              |
-| <a name="req4">4</a> | Usuarios mínimos conectados   | Un usuario no verá los mensajes pasados hasta que se hayan conectado N clientes | Media     | - El parámetro N puede cambiar mediante comando <br />- Por defecto N es evaluado como 2 |
+| <a name="req4">4</a> | Usuarios mínimos conectados   | Un usuario no verá los mensajes pasados hasta que se hayan conectado N clientes | Media     | - El parámetro N puede cambiar al ejecutar el server <br />- Por defecto N es evaluado como 2 |
 | <a name="req5">5</a> | Envío de mensajes privados    | Un usuario puede enviar un mensaje privado a otro usuario    | Media     |                                                              |
 | <a name="req6">6</a> | Ver los mensajes privados     | Un usuario puede ver los mensajes privados enviados por otro usuario | Media     |                                                              |
-| <a name="req7">7</a> | Salir del servidor            | Un usuario puede salir del servidor mediante comando         | Baja      | - Para poder salir sin cerrar de manera indirecta (cerrar consola, ctrl + c) |
 
-**(Tarea 2)** Los requisitos no cambian, ya que, el proceso de migración debe ser transparente para el usuario.
+**(Tarea 2)** Los requisitos no cambian, ya que el proceso de migración debe ser transparente para el usuario.
 
 ## Arquitectura
 
@@ -171,7 +170,7 @@ python3 client/main.py
 
 Posterior, comience a enviar mensajes por estos N-1 clientes, y posterior conecte el cliente número **N**. 
 
-Una vez hecho, debe revisar que puede observar en consola los siguientes datos:
+Una vez hecho, debe revisar que pueda observar en consola los siguientes datos:
 
 - Instrucciones de uso.
 - Comandos especiales.
@@ -181,8 +180,6 @@ Una vez hecho, debe revisar que puede observar en consola los siguientes datos:
 
 Esto permitirá el mantenimiento de los requerimientos: [#1](#req1), [#2](#req2), [#3](#req3) y [#4](#req4).
 
-Luego, pruebe la desconexión del servidor mediante el comando `$exit` con uno de los clientes, y una salida indirecta con otro cliente (cerrar consola o *Keyboard Interrupt*) para comprobar que el servidor sepa responder a dicha desconexión. Mantiene el requerimiento [#7](#req7).
-
 Mediante el uso de 3 o más clientes conectados, se recomienda probar el comando `$private USER MSG` enviando un mensaje a uno de los usuarios conectados, de lo cual se espera el siguiente comportamiento.
 
 - El usuario que envía el mensaje es confirmado del envío.
@@ -190,8 +187,6 @@ Mediante el uso de 3 o más clientes conectados, se recomienda probar el comando
 - Todo otro usuario no debe ver dicho mensaje.
 
 Así se mantienen los requerimientos: [#5](#req5) y [#6](#req6)
-
-Finalmente, probar el comando `$reset -N` y repetir el proceso con una nueva cantidad de usuarios conectados, ya que los anteriores se desconectarán apenas se aprete alguna tecla de input.
 
 #### Producción **(Tarea 1)**
 
@@ -207,11 +202,11 @@ Donde `URI` corresponde a la URI en la que se encuentra el servidor, en nuestro 
 
 ![Diagrama del protocolo de migración](https://i.imgur.com/9faygIn.png)
 
-Puede observar el comportamiento de los procesos utilizando la herramienta disponible en su sistema operativo (Administrador de tareas)
+Puede observar el comportamiento de los procesos utilizando la herramienta disponible en su sistema operativo (Administrador de Tareas).
 
 ## Dev Notes
 
-- El P2P no es posible aún entre redes de distintos lugares, debido a que se requiere la implementación de alguna estrategia tipo NAT Hole Punching o Port Forwarding para pasar a través de los routers privados.
+- El programa no funciona entre redes de distintos lugares (redes no LAN), debido a que se requiere la implementación de alguna estrategia tipo NAT Hole Punching o Port Forwarding para pasar a través de los routers privados.
 
 ## Manual de uso
 
