@@ -290,7 +290,7 @@ def reconnect(new_server):
 # Run client
 if __name__ == '__main__':
     # NOTE: Change this value when debugging
-    debug = True
+    debug = False
 
     # Client
     p2p_node = p2p.init_p2p(private_event)

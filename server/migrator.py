@@ -4,7 +4,7 @@ from time import sleep
 
 # Migrator thread
 class Migrator:
-    def __init__(self, server, interval=10):
+    def __init__(self, server, interval=30):
         super().__init__()
         self.server = server
         self.interval = interval

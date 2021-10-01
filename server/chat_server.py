@@ -1,5 +1,4 @@
 import logging
-import requests
 import socketio as socketio_client
 import sys
 from flask import Flask, request
@@ -164,21 +163,22 @@ def prepare(data):
     sv.messages_lock.acquire()
     sv.messages = data['messages']
     sv.messages_lock.release()
-    requests.get(f'{sv.old_server}/stop')
+    sv.client.emit('ready')
     sv.relay_client.emit('register', [sv.ip, sv.port])
     print('\nFinished receiving data from previous server!\n')
+    sv.client.disconnect()
     sv.migrator.timer.start()
 
 
 # New server is ready
-@app.route('/stop')
-def stop():
+@socketio.on('ready')
+def ready():
     print('\nFinished migrating, exiting server...\n')
-    sv.client.disconnect()
+    if not sv.old_server:
+        sv.client.disconnect()
     sv.relay_client.disconnect()
     sv.sio.emit('reconnect', sv.new_server)
     sv.sio.stop()
-    return ''
 
 # *******************************************************************
 
@@ -200,7 +200,7 @@ if __name__ == '__main__':
     if server_type == 'new':
         old_server = sys.argv[4]
         old_server_uri = f'http://{old_server}'
-        sv.old_server  = old_server_uri
+        sv.old_server = old_server_uri
         sv.client.connect(old_server_uri)
         new_server = f'http://{sv.ip}:{sv.port}'
         sv.client.emit('migrate', new_server)
