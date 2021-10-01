@@ -29,6 +29,8 @@ class Migrator:
 
     # Migrate data to new server
     def migrate_data(self, new_server, sid):
+        if not self.server.old_server:
+            self.server.relay_client.connect(sv.relay)
         self.server.new_server = new_server
         self.server.relay_client.emit('migrating')
         print(f'\nMigrating to {new_server}...\n')

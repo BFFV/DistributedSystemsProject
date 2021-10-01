@@ -6,6 +6,7 @@ from flask_socketio import SocketIO
 from server import Server, get_local_ip
 
 
+
 # Server
 app = Flask(__name__)
 log = logging.getLogger('werkzeug')
@@ -182,9 +183,15 @@ def ready():
 
 # *******************************************************************
 
+# Write server feedback on '.logs' file
+def fprint(text):
+    with open(".logs", 'a') as logfile:
+        print(text, file=logfile)
+
 
 # Run chat server
 if __name__ == '__main__':
+    #fprint("Init server...")
     server_n = int(sys.argv[1][1:])
     server_port = sys.argv[2]
     server_type = sys.argv[3]
@@ -193,22 +200,27 @@ if __name__ == '__main__':
         relay = f'http://{local_ip}:{5000}'
     else:
         relay = sys.argv[5]
+    #fprint(f"Server relay: {relay}")
     sv = Server(local_ip, server_port, socketio, sio_client, rel_client, relay,
                 start=server_type != 'new')
+    #fprint("Conecting with migrator...")
     sv.N_CLIENTS_REQUIRED = server_n
-    sv.relay_client.connect(sv.relay)
+    
+    #fprint("Migrator's conection success")
     if server_type == 'new':
+        sv.relay_client.connect(sv.relay)
         old_server = sys.argv[4]
         old_server_uri = f'http://{old_server}'
         sv.old_server = old_server_uri
         sv.client.connect(old_server_uri)
         new_server = f'http://{sv.ip}:{sv.port}'
         sv.client.emit('migrate', new_server)
-    else:
-        sv.client.connect(sv.relay)
     try:
+        #fprint(f"Run server on port {server_port}")
         socketio.run(app, host='0.0.0.0', port=server_port)
     except KeyboardInterrupt:
+        #fprint("KeyboardInterrupt")
         pass
     finally:
+        #fprint("Shut down server\n")
         exit()
