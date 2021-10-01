@@ -27,11 +27,9 @@ chat = deque()  # Messages (maxlen param for last X messages)
 print_lock = Lock()  # Protect the print_state function
 chat_is_active = False  # Check if chat is active (N users required)
 ask_input = f'{54 * "-"}\nSpecial Commands:{36 * " "}|\n{53 * " "}|\n' \
-            f'"$exit" -> exit program{30 * " "}|\n' \
             f'"$private USER MSG" -> send MSG to USER in private' \
             f'{3 * " "}|\n' \
-            f'"$reset -N" -> reset server with N required users' \
-            f'{4 * " "}|\n{54 * "-"}\n\n' \
+            f'{54 * "-"}\n\n' \
             f'Type your message:\n'
 
 # Private message
@@ -285,7 +283,6 @@ def reconnect(new_server):
         if debug:
             print('Switched successfully!\n')
     except exc.ConnectionError:
-
         accepted = False
     sio_lock.release()
 
