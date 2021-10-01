@@ -18,10 +18,11 @@ Profesor: Javier Bustos
 
 - flask
 - flask_socketio
+- python_socketio
 - p2pnetwork
 - requests
 
-Opción A: Instalarlas con el comando: "python3 -m pip install flask flask-socketio p2pnetwork requests"
+Opción A: Instalarlas con el comando: "python3 -m pip install flask flask-socketio python-socketio p2pnetwork requests"
 
 Opción B: Instalarlas desde el archivo 'requirements.txt' incluido en la entrega, con el comando: "python3 -m pip install -r requirements.txt" 
 (debe estar parado en la misma carpeta que el archivo para que funcione)
