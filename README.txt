@@ -32,25 +32,27 @@ Opción B: Instalarlas desde el archivo 'requirements.txt' incluido en la entreg
 Para correr el servidor localmente, ejecutar la siguiente línea dentro de la carpeta 'server': "python3 main.py -N"
 Donde N corresponde a cualquier número entero positivo (ej: "python3 main.py -2").
 
+- Esto ejecuta un server que actúa como intermediario entre los clientes y el servidor actual, dado que este último va migrando y cambiando su IP y puerto.
+
 * Cliente
 
 Para correr un cliente, ejecutar la siguiente línea dentro de la carpeta 'client': "python3 main.py URI"
-Donde URI corresponde a la URI en la que se encuentra el servidor (http://IP:5000). Por ejemplo "python3 main.py http://192.168.1.110:5000".
+Donde URI corresponde a la URI en la que se encuentra el servidor intermediario, la que aparece al ejecutar lo indicado en la sección anterior (http://IP:5000).
+Por ejemplo "python3 main.py http://192.168.1.110:5000".
 
 - La IP del servidor se puede ver en la consola del servidor al momento de ejecutarlo, el puerto es siempre el 5000.
 - Si no entregas el argumento URI, se asume que estás intentando conectarte a un servidor local en http://127.0.0.1:5000.
 
-Los clientes del chat pueden enviar mensajes, y además tienen a su disposición los siguientes comandos especiales (también indicados en la interfaz del programa):
+Los clientes del chat pueden enviar mensajes, y además tienen a su disposición el siguiente comando especial:
 
-- "$exit": Permite al cliente salirse del chat y terminar su programa (equivalente a hacer CTRL+C).
 - "$private USER MSG": Enviar un mensaje privado "MSG" (que NO pasa por el servidor) al usuario de nombre USER.
-- "$reset -N": Reiniciar el servidor a su estado inicial con un nuevo parámetro N (los clientes que estaban conectados actualmente serán desconectados y se perderán los datos de esta sesión).
+
+* Testing
+
+En la documentación "Docs.md" se pueden encontrar algunas formas de testear la tarea.
 
 * Consideraciones
 
 - Es posible enviar mensajes de cualquier tipo antes de que se unan los primeros N usuarios, pero no se podrán ver hasta que el chat se active.
 
-- Cuando el número de usuarios conectados alcance el valor N, el chat quedará activado permanentemente, a menos que se utilice el comando `$reset -N` desde algún cliente. 
-Este último comando permite volver a fijar un valor de N y reiniciar todo.
-
-- Los comandos especiales del cliente ('$exit', '$private', '$reset') son indicados dentro de la interfaz del chat.
+- Cuando el número de usuarios conectados alcance el valor N, el chat quedará activado permanentemente.
