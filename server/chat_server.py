@@ -4,7 +4,6 @@ import sys
 from flask import Flask, request
 from flask_socketio import SocketIO
 from server import Server, get_local_ip
-from time import sleep
 
 
 # Server
