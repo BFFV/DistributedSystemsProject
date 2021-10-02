@@ -4,6 +4,7 @@ import sys
 from flask import Flask, request
 from flask_socketio import SocketIO
 from server import Server, get_local_ip
+from time import sleep
 
 
 # Server
@@ -172,14 +173,20 @@ def prepare(data):
     sv.client.emit('ready')
     sv.relay_client.emit('register', [sv.ip, sv.port])
     print('\nFinished receiving data from previous server!\n')
-    sv.client.disconnect()
     sv.migrator.timer.start()
+
+
+# Last server is closing
+@sio_client.on('closing')
+def closing():
+    sv.client.disconnect()
 
 
 # New server is ready
 @socketio.on('ready')
 def ready():
     print('\nFinished migrating, exiting server...\n')
+    sv.sio.emit('closing', room=request.sid)
     sv.relay_client.disconnect()
     sv.sio.emit('reconnect', sv.new_server)
     sv.sio.stop()
