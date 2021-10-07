@@ -1,7 +1,11 @@
-import logging
-import os
-import subprocess
+import import_fixer
+
+import_fixer.fix_imports()
+
 import sys
+import os
+import logging
+import subprocess
 from flask import Flask, request
 from flask_socketio import SocketIO
 from server import get_local_ip, get_free_port
