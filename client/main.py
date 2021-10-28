@@ -1,3 +1,7 @@
+import import_fixer
+
+import_fixer.fix_imports()
+
 import os
 import p2p
 import socketio

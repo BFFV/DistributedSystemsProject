@@ -1,8 +1,12 @@
-import logging
+import import_fixer
+
+import_fixer.fix_imports()
+
+import sys
 import os
 import random
+import logging
 import subprocess
-import sys
 from flask import Flask, request
 from flask_socketio import SocketIO
 from server import get_local_ip, get_free_port
