@@ -1,8 +1,8 @@
 from migrator import Migrator
 from random import choice
 from socket import socket, AF_INET, SOCK_DGRAM, SOCK_STREAM
-from user import User
 from threading import Lock
+from user import User
 
 
 # Chat server

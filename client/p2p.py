@@ -1,5 +1,5 @@
-from requests import get
 from p2pnetwork.node import Node
+from requests import get
 from socket import socket, AF_INET, SOCK_DGRAM, SOCK_STREAM, \
     SOL_SOCKET, SO_REUSEADDR
 
