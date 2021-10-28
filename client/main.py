@@ -322,7 +322,7 @@ if __name__ == '__main__':
         # Send messages
         while True:
             send_message()
-    except exc.ConnectionError:
+    except (exc.ConnectionError, exc.BadNamespaceError):
         print('A connection error has occurred, please try to connect again...')
     except KeyboardInterrupt:
         pass

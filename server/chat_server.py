@@ -8,6 +8,7 @@ import sys
 from flask import Flask, request
 from flask_socketio import SocketIO
 from server import Server, get_local_ip
+from socketio import exceptions as exc
 
 
 # Server
@@ -174,7 +175,11 @@ def prepare(data):
     sv.messages = data['messages']
     sv.messages_lock.release()
     sv.client.emit('ready')
-    sv.relay_client.emit('register', [sv.ip, sv.port])
+    try:
+        sv.relay_client.emit('register', {
+            'new': [sv.ip, sv.port], 'old': sv.old_server[7:].split(':')})
+    except exc.BadNamespaceError:
+        pass
     print('\nFinished receiving data from previous server!\n')
     sv.migrator.timer.start()
 
@@ -190,7 +195,8 @@ def closing():
 def ready():
     print('\nFinished migrating, exiting server...\n')
     sv.sio.emit('closing', room=request.sid)
-    sv.relay_client.disconnect()
+    if sv.old_server:
+        sv.relay_client.disconnect()
     sv.sio.emit('reconnect', sv.new_server)
     sv.sio.stop()
 
@@ -213,7 +219,10 @@ if __name__ == '__main__':
                 start=server_type != 'new')
     sv.N_CLIENTS_REQUIRED = server_n
     if server_type == 'new':
-        sv.relay_client.connect(sv.relay)
+        try:
+            sv.relay_client.connect(sv.relay)
+        except exc.ConnectionError:
+            pass
         old_server = sys.argv[4]
         old_server_uri = f'http://{old_server}'
         sv.old_server = old_server_uri
