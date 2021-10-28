@@ -1,3 +1,7 @@
+import import_fixer
+
+import_fixer.fix_imports()
+
 import logging
 import socketio as socketio_client
 import sys
