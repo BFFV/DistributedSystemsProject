@@ -8,7 +8,7 @@ from user import User
 # Chat server
 class Server:
     def __init__(self, ip, port, sio, sio_client, relay_client, relay_uri,
-                 start=True):
+                 twin_client, twin_uri, start=True):
         # Client counter
         self.N_CLIENTS_REQUIRED = 2
         self.n_clients = 0
@@ -45,6 +45,10 @@ class Server:
 
         # New server
         self.new_server = ''
+
+        # Twin server
+        self.twin_client = twin_client
+        self.twin_uri = twin_uri
 
     # Update params for server
     def set_params(self, n_clients=2):

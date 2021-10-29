@@ -4,11 +4,11 @@ import_fixer.fix_imports()
 
 import sys
 import os
-import random
 import logging
 import subprocess
 from flask import Flask, request
 from flask_socketio import SocketIO
+from functools import reduce
 from server import get_local_ip, get_free_port
 from threading import Lock
 
@@ -22,6 +22,7 @@ socketio = SocketIO(app)
 # Global params
 N_CLIENTS_REQUIRED = 2
 SERVER = []
+CURRENT_SERVER = 0
 migration_lock = Lock()
 
 
@@ -39,6 +40,43 @@ def show_server_locations():
     for s in SERVER:
         print(f'Chat: {s[0]}:{s[1]}')
     print()
+
+
+# Get numeric value from IP
+def get_value(ip):
+    return int(reduce(lambda i, j: i + j, [f'{int(sub):03d}' for sub in ip]))
+
+
+# Get distance between IPs
+def get_ip_diff(ip1, ip2) -> int:
+    return abs(get_value(ip1.split('.')) - get_value(ip2.split('.')))
+
+
+# Find closest chat server
+def get_closest_server(client, servers):
+    closest = float('inf')
+    best_server = []
+    for s in servers:
+        distance = get_ip_diff(client[0], s[0])
+        if distance < closest:
+            best_server = s
+            closest = distance
+        elif (distance == closest) and \
+                (abs(s[1] - client[1]) < abs(best_server[1] - client[1])):
+            best_server = s
+            closest = distance
+    return best_server
+
+
+# Debug replication servers
+def get_different_server(client, servers):
+    global CURRENT_SERVER
+    chosen = CURRENT_SERVER
+    if CURRENT_SERVER:
+        CURRENT_SERVER = 0
+    else:
+        CURRENT_SERVER = 1
+    return servers[chosen]
 
 
 # ************************** Socket Events **************************
@@ -59,10 +97,11 @@ def register(data):
 
 # Listen for clients
 @socketio.on('connect_to_chat')
-def connect():
+def connect(data):
     migration_lock.acquire()
-    # TODO: Choose closest server to client
-    chosen_server = random.choice(SERVER)
+    # Use get_different_server for debugging replication
+    # TODO: chosen_server = get_closest_server(data, SERVER)
+    chosen_server = get_different_server(data, SERVER)
     socketio.emit('connect_to_chat', chosen_server, room=request.sid)
     migration_lock.release()
 
@@ -85,12 +124,14 @@ if __name__ == '__main__':
     for n in range(2):
         chat_server_port = get_free_port()
 
-        # NOTE: Change stdout from 'subprocess.DEVNULL' to 'None' for debugging
-        # TODO: creationflags=subprocess.CREATE_NEW_CONSOLE (windows only)
+        # TODO: NOTE: Change stdout from 'subprocess.DEVNULL' to 'None' for debugging
+        twin = ''
+        if n:
+            twin = f'http://{SERVER[0][0]}:{SERVER[0][1]}'
         subprocess.Popen(['python3', f'{current_dir}/chat_server.py',
                           f'-{N_CLIENTS_REQUIRED}',
-                          f'{chat_server_port}', 'original'],
-                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                          f'{chat_server_port}', 'original', twin],
+                         stdout=None, stderr=None)
         SERVER.append([server_ip, chat_server_port])
     show_server_locations()
 

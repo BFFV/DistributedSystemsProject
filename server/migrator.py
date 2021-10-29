@@ -1,4 +1,3 @@
-from socketio import exceptions as exc
 from threading import Thread
 from time import sleep
 
@@ -25,7 +24,7 @@ class Migrator:
         chosen = self.server.find_future_server()
         data = {'n_clients': self.server.N_CLIENTS_REQUIRED,
                 'ip': self.server.ip, 'port': self.server.port,
-                'relay': self.server.relay}
+                'relay': self.server.relay, 'twin': self.server.twin_uri}
         self.server.sio.emit('create_server', data, room=chosen)
 
     # Migrate data to new server

@@ -9,6 +9,7 @@ from flask import Flask, request
 from flask_socketio import SocketIO
 from server import Server, get_local_ip
 from socketio import exceptions as exc
+from time import sleep
 
 
 # Server
@@ -18,6 +19,7 @@ log.disabled = True
 socketio = SocketIO(app)
 sio_client = socketio_client.Client()
 rel_client = socketio_client.Client()
+twin_client = socketio_client.Client()
 
 
 # Write server feedback on '.logs' file
@@ -91,6 +93,13 @@ def handle_message(data):
         sv.messages_lock.acquire()
         sv.messages.append(message)
         sv.messages_lock.release()
+
+        # TODO: Replicate message
+        try:
+            sv.twin_client.emit('rep_message', message)
+        except exc.BadNamespaceError:
+            print('ERRRRRRRRRRRRRREPPPPPPPPPPPPP')
+            pass
 
         # Broadcast message
         if sv.n_clients >= sv.N_CLIENTS_REQUIRED:
@@ -197,15 +206,41 @@ def ready():
     sv.sio.emit('closing', room=request.sid)
     if sv.old_server:
         sv.relay_client.disconnect()
+    sv.twin_client.disconnect()
     sv.sio.emit('reconnect', sv.new_server)
     sv.sio.stop()
+
+
+# TODO: Twin server has changed
+@socketio.on('twin')
+def update_twin(data):
+    if sv.twin_uri:
+        sv.twin_client.disconnect()
+        # Maybe use alternate twin client
+        sleep(2)
+    sv.twin_uri = data
+    try:
+        sv.twin_client.connect(sv.twin_uri)
+    except exc.ConnectionError:
+        pass
+
+
+# Replicate messages
+@socketio.on('rep_message')
+def replicate_message(message):
+    sv.messages_lock.acquire()
+    sv.messages.append(message)
+    sv.messages_lock.release()
+
+    # Broadcast message
+    if sv.n_clients >= sv.N_CLIENTS_REQUIRED:
+        socketio.emit('response', message, broadcast=True)
 
 # *******************************************************************
 
 
 # Run chat server
 if __name__ == '__main__':
-    # fprint('Init server...')
     server_n = int(sys.argv[1][1:])
     server_port = sys.argv[2]
     server_type = sys.argv[3]
@@ -213,28 +248,37 @@ if __name__ == '__main__':
     if server_type == 'original':
         relay = f'http://{local_ip}:{5000}'
     else:
-        relay = sys.argv[5]
-    # fprint(f'Server relay: {relay}')
+        relay = sys.argv[6]
+    twin = sys.argv[4]
     sv = Server(local_ip, server_port, socketio, sio_client, rel_client, relay,
-                start=server_type != 'new')
+                twin_client, twin, start=server_type != 'new')
     sv.N_CLIENTS_REQUIRED = server_n
+
+    # TODO: Twin servers
+    try:
+        print(f'TWIN: {sv.twin_uri}')
+        if sv.twin_uri:
+            sv.twin_client.connect(sv.twin_uri)
+            sv.twin_client.emit('twin', f'http://{sv.ip}:{sv.port}')
+    except (exc.ConnectionError, exc.BadNamespaceError) as err:
+        print('EEEEEEEEEEEEEEEEEEEEERRRRRRRRRRRRRRRRRR')
+        pass
+
+    # New server setup
     if server_type == 'new':
         try:
             sv.relay_client.connect(sv.relay)
         except exc.ConnectionError:
             pass
-        old_server = sys.argv[4]
+        old_server = sys.argv[5]
         old_server_uri = f'http://{old_server}'
         sv.old_server = old_server_uri
         sv.client.connect(old_server_uri)
         new_server = f'http://{sv.ip}:{sv.port}'
         sv.client.emit('migrate', new_server)
     try:
-        # fprint(f'Running server on port {server_port}')
         socketio.run(app, host='0.0.0.0', port=server_port)
     except KeyboardInterrupt:
-        # fprint('KeyboardInterrupt')
         pass
     finally:
-        # fprint('Shutting down server\n')
         exit()
