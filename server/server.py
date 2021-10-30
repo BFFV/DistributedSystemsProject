@@ -29,6 +29,7 @@ class Server:
         self.migrator = Migrator(self)
         if start:
             self.migrator.timer.start()
+        self.can_migrate = True
 
         # Connection data
         self.ip = ip

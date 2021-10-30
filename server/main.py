@@ -124,7 +124,7 @@ if __name__ == '__main__':
     for n in range(2):
         chat_server_port = get_free_port()
 
-        # TODO: NOTE: Change stdout from 'subprocess.DEVNULL' to 'None' for debugging
+        # NOTE: Change stdout from 'subprocess.DEVNULL' to 'None' for debugging
         twin = ''
         if n:
             twin = f'http://{SERVER[0][0]}:{SERVER[0][1]}'

@@ -5,6 +5,7 @@ import_fixer.fix_imports()
 import logging
 import socketio as socketio_client
 import sys
+import builtins
 from flask import Flask, request
 from flask_socketio import SocketIO
 from server import Server, get_local_ip
@@ -20,6 +21,7 @@ socketio = SocketIO(app)
 sio_client = socketio_client.Client()
 rel_client = socketio_client.Client()
 twin_client = socketio_client.Client()
+
 
 
 # Write server feedback on '.logs' file
@@ -94,11 +96,10 @@ def handle_message(data):
         sv.messages.append(message)
         sv.messages_lock.release()
 
-        # TODO: Replicate message
+        # Replicate message
         try:
             sv.twin_client.emit('rep_message', message)
         except exc.BadNamespaceError:
-            print('ERRRRRRRRRRRRRREPPPPPPPPPPPPP')
             pass
 
         # Broadcast message
@@ -187,8 +188,8 @@ def prepare(data):
     try:
         sv.relay_client.emit('register', {
             'new': [sv.ip, sv.port], 'old': sv.old_server[7:].split(':')})
-    except exc.BadNamespaceError:
-        pass
+    except exc.BadNamespaceError as err:
+        print(err)
     print('\nFinished receiving data from previous server!\n')
     sv.migrator.timer.start()
 
@@ -211,18 +212,21 @@ def ready():
     sv.sio.stop()
 
 
-# TODO: Twin server has changed
+# Twin server has changed
 @socketio.on('twin')
 def update_twin(data):
+    if sv.twin_uri == data:
+        sv.can_migrate = True
+        return
     if sv.twin_uri:
         sv.twin_client.disconnect()
-        # Maybe use alternate twin client
         sleep(2)
     sv.twin_uri = data
     try:
         sv.twin_client.connect(sv.twin_uri)
-    except exc.ConnectionError:
-        pass
+        sv.can_migrate = True
+    except exc.ConnectionError as err:
+        print(err)
 
 
 # Replicate messages
@@ -254,14 +258,17 @@ if __name__ == '__main__':
                 twin_client, twin, start=server_type != 'new')
     sv.N_CLIENTS_REQUIRED = server_n
 
-    # TODO: Twin servers
+    # Mod print to add server name
+    def print(*args, **kwargs):
+       builtins.print(f"||| {sv.ip}:{sv.port} |||", *args, **kwargs)
+
+    # Twin servers
     try:
-        print(f'TWIN: {sv.twin_uri}')
-        if sv.twin_uri:
+        if sv.twin_uri:                     # True if sv is the second twin
+            sv.can_migrate = False
             sv.twin_client.connect(sv.twin_uri)
             sv.twin_client.emit('twin', f'http://{sv.ip}:{sv.port}')
     except (exc.ConnectionError, exc.BadNamespaceError) as err:
-        print('EEEEEEEEEEEEEEEEEEEEERRRRRRRRRRRRRRRRRR')
         pass
 
     # New server setup
@@ -279,6 +286,7 @@ if __name__ == '__main__':
     try:
         socketio.run(app, host='0.0.0.0', port=server_port)
     except KeyboardInterrupt:
+        # TODO: Emergency ctrl+c
         pass
     finally:
         exit()
