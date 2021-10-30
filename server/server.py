@@ -8,13 +8,14 @@ from user import User
 # Chat server
 class Server:
     def __init__(self, ip, port, sio, sio_client, relay_client, relay_uri,
-                 start=True):
+                 twin_client, twin_uri, start=True):
         # Client counter
         self.N_CLIENTS_REQUIRED = 2
         self.n_clients = 0
 
         # Users
         self.users = dict()  # Key: socket ID, Value: User object
+        self.rep_users = dict()  # Key: rep_username, Value: User object
         self.old_users = dict()  # Key: "ip:port", Value: (username, node_id)
 
         # Usernames set (for quickly checking existence)
@@ -29,6 +30,7 @@ class Server:
         self.migrator = Migrator(self)
         if start:
             self.migrator.timer.start()
+        self.can_migrate = True
 
         # Connection data
         self.ip = ip
@@ -45,6 +47,10 @@ class Server:
 
         # New server
         self.new_server = ''
+
+        # Twin server
+        self.twin_client = twin_client
+        self.twin_uri = twin_uri
 
     # Update params for server
     def set_params(self, n_clients=2):
@@ -74,6 +80,8 @@ class Server:
         for user in self.users.values():
             if user.username == username:
                 return user.get_connections()
+        if username in self.rep_users:
+            return self.rep_users[username]
 
     # Choose new client to migrate the server
     def find_future_server(self):

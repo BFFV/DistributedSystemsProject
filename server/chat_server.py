@@ -5,10 +5,12 @@ import_fixer.fix_imports()
 import logging
 import socketio as socketio_client
 import sys
+import builtins
 from flask import Flask, request
 from flask_socketio import SocketIO
 from server import Server, get_local_ip
 from socketio import exceptions as exc
+from time import sleep
 
 
 # Server
@@ -18,6 +20,7 @@ log.disabled = True
 socketio = SocketIO(app)
 sio_client = socketio_client.Client()
 rel_client = socketio_client.Client()
+twin_client = socketio_client.Client()
 
 
 # Write server feedback on '.logs' file
@@ -92,6 +95,12 @@ def handle_message(data):
         sv.messages.append(message)
         sv.messages_lock.release()
 
+        # Replicate message
+        try:
+            sv.twin_client.emit('rep_message', message)
+        except exc.BadNamespaceError:
+            pass
+
         # Broadcast message
         if sv.n_clients >= sv.N_CLIENTS_REQUIRED:
             socketio.emit('response', message, broadcast=True)
@@ -121,6 +130,13 @@ def handle_login(data):
 
     # New user
     if user not in sv.usernames:
+        # Replicate new user
+        try:
+            sv.twin_client.emit('rep_new_user', data)
+        except exc.BadNamespaceError:
+            pass
+
+        # Build new user
         sv.build_user(user, request.sid, data['ip'], data['port'], data['id'])
         socketio.emit('users', sv.n_clients, broadcast=True)
         socketio.emit('accepted', room=request.sid)
@@ -149,6 +165,14 @@ def disconnect():
     user = sv.users.pop(request.sid, False)
     if user and not sv.migrating:
         username = user.username
+
+        # Replicate disconnection
+        try:
+            sv.twin_client.emit('rep_disconnect', username)
+        except exc.BadNamespaceError:
+            pass
+
+        # Remove user
         sv.n_clients -= 1
         sv.usernames.remove(username)
         socketio.emit(
@@ -171,6 +195,9 @@ def migrate(data):
 @sio_client.on('prepare')
 def prepare(data):
     sv.old_users = data['users']
+    sv.usernames = set(data['usernames'])
+    sv.rep_users = data['rep_users']
+    sv.n_clients = len(sv.rep_users)
     sv.messages_lock.acquire()
     sv.messages = data['messages']
     sv.messages_lock.release()
@@ -178,8 +205,8 @@ def prepare(data):
     try:
         sv.relay_client.emit('register', {
             'new': [sv.ip, sv.port], 'old': sv.old_server[7:].split(':')})
-    except exc.BadNamespaceError:
-        pass
+    except exc.BadNamespaceError as err:
+        print(err)
     print('\nFinished receiving data from previous server!\n')
     sv.migrator.timer.start()
 
@@ -197,15 +224,81 @@ def ready():
     sv.sio.emit('closing', room=request.sid)
     if sv.old_server:
         sv.relay_client.disconnect()
+    sv.twin_client.disconnect()
     sv.sio.emit('reconnect', sv.new_server)
     sv.sio.stop()
+
+
+# Twin server has changed
+@socketio.on('twin')
+def update_twin(data):
+    if sv.twin_uri == data:
+        sv.can_migrate = True
+        return
+    if sv.twin_uri:
+        sv.twin_client.disconnect()
+        sleep(2)
+    sv.twin_uri = data
+    try:
+        sv.twin_client.connect(sv.twin_uri)
+        sv.can_migrate = True
+    except exc.ConnectionError:
+        pass
+
+
+# Replicate messages
+@socketio.on('rep_message')
+def replicate_message(message):
+    sv.messages_lock.acquire()
+    sv.messages.append(message)
+    sv.messages_lock.release()
+
+    # Broadcast message
+    if sv.n_clients >= sv.N_CLIENTS_REQUIRED:
+        socketio.emit('response', message, broadcast=True)
+
+
+# Replicate new users
+@socketio.on('rep_new_user')
+def replicate_new_user(data):
+    sv.n_clients += 1
+    sv.rep_users[data['user']] = (data['ip'], data['port'], data['id'])
+    sv.usernames.add(data['user'])
+    socketio.emit('users', sv.n_clients, broadcast=True)
+
+    # Check if N required clients have joined
+    join_msg = f'{data["user"]} has joined the chat!'
+    sv.messages_lock.acquire()
+    sv.messages.append(join_msg)
+    sv.messages_lock.release()
+    if sv.n_clients == sv.N_CLIENTS_REQUIRED:
+        print('Chat is now active!')
+        broadcast_past_messages()
+        sv.N_CLIENTS_REQUIRED = -1  # Chat is permanent from now on
+    elif sv.n_clients > sv.N_CLIENTS_REQUIRED:
+        socketio.emit('response', join_msg, broadcast=True)
+
+
+# Replicate new users
+@socketio.on('rep_disconnect')
+def replicate_disconnection(username):
+    # Remove user
+    sv.rep_users.pop(username, False)
+    sv.n_clients -= 1
+    sv.usernames.remove(username)
+    socketio.emit('users', sv.n_clients, broadcast=True)
+    msg = f'{username} has left the chat!'
+    if sv.n_clients > sv.N_CLIENTS_REQUIRED:
+        socketio.emit('response', msg)
+    sv.messages_lock.acquire()
+    sv.messages.append(msg)
+    sv.messages_lock.release()
 
 # *******************************************************************
 
 
 # Run chat server
 if __name__ == '__main__':
-    # fprint('Init server...')
     server_n = int(sys.argv[1][1:])
     server_port = sys.argv[2]
     server_type = sys.argv[3]
@@ -213,28 +306,41 @@ if __name__ == '__main__':
     if server_type == 'original':
         relay = f'http://{local_ip}:{5000}'
     else:
-        relay = sys.argv[5]
-    # fprint(f'Server relay: {relay}')
+        relay = sys.argv[6]
+    twin = sys.argv[4]
     sv = Server(local_ip, server_port, socketio, sio_client, rel_client, relay,
-                start=server_type != 'new')
+                twin_client, twin, start=server_type != 'new')
     sv.N_CLIENTS_REQUIRED = server_n
+
+    # Mod print to add server name
+    def print(*args, **kwargs):
+       builtins.print(f'||| {sv.ip}:{sv.port} |||', *args, **kwargs)
+
+    # Twin servers
+    try:
+        if sv.twin_uri:  # True for every server except the first one
+            sv.can_migrate = False
+            sv.twin_client.connect(sv.twin_uri)
+            sv.twin_client.emit('twin', f'http://{sv.ip}:{sv.port}')
+    except (exc.ConnectionError, exc.BadNamespaceError) as err:
+        pass
+
+    # New server setup
     if server_type == 'new':
         try:
             sv.relay_client.connect(sv.relay)
         except exc.ConnectionError:
             pass
-        old_server = sys.argv[4]
+        old_server = sys.argv[5]
         old_server_uri = f'http://{old_server}'
         sv.old_server = old_server_uri
         sv.client.connect(old_server_uri)
         new_server = f'http://{sv.ip}:{sv.port}'
         sv.client.emit('migrate', new_server)
     try:
-        # fprint(f'Running server on port {server_port}')
         socketio.run(app, host='0.0.0.0', port=server_port)
     except KeyboardInterrupt:
-        # fprint('KeyboardInterrupt')
+        # TODO: Emergency ctrl+c
         pass
     finally:
-        # fprint('Shutting down server\n')
         exit()

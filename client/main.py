@@ -254,14 +254,15 @@ def create_server(data):
     ip = data['ip']
     port = data['port']
     rel = data['relay']
+    twin = data['twin']
     if debug:
         print('Creating new server...\n')
 
-    # NOTE: Change stdout from "subprocess.DEVNULL" to "None" for debugging
+    # TODO: NOTE: Change stdout from "subprocess.DEVNULL" to "None" for debugging
     subprocess.Popen(['python3', f'{current_dir}/../server/chat_server.py',
-                      f'-{n_clients}', f'{server_port}', 'new',
+                      f'-{n_clients}', f'{server_port}', 'new', twin,
                       f'{ip}:{port}', f'{rel}'],
-                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                     stdout=None, stderr=None)
 
 
 @sio_a.on('reconnect')
@@ -310,7 +311,8 @@ if __name__ == '__main__':
         while not connected:
             if not connected and not connecting:
                 print('Trying to connect to server...')
-                relay_client.emit('connect_to_chat')
+                relay_client.emit(
+                    'connect_to_chat', [p2p_node.host, p2p_node.port])
                 connecting = True
         print('Successfully connected to server!')
 
