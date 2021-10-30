@@ -5,7 +5,7 @@ from time import sleep
 
 # Migrator thread
 class Migrator:
-    def __init__(self, server, interval=10): # TODO: interval=30
+    def __init__(self, server, interval=30):
         self.server = server
         self.interval = interval
         self.timer = Thread(target=self.run, daemon=True)
@@ -18,6 +18,7 @@ class Migrator:
             self.wait_interval()
             while not self.server.can_migrate:
                 sleep(1)
+            self.print('Attempting to migrate...')
             if not self.server.users:
                 addr = f'http://{self.server.ip}:{self.server.port}'
                 self.server.twin_client.emit('twin', addr)
@@ -35,11 +36,12 @@ class Migrator:
     # Migrate data to new server
     def migrate_data(self, new_server, sid):
         self.server.new_server = new_server
-        print(f'\nMigrating to {new_server}...\n')
+        self.print(f'\nMigrating to {new_server}...\n')
         users_info = {f'{x.ip}:{x.port}': x.username
                       for x in self.server.users.values()}
         self.server.messages_lock.acquire()
-        chat_data = {'users': users_info, 'messages': self.server.messages}
+        chat_data = {'users': users_info, 'usernames': list(self.server.usernames),
+                     'rep_users': self.server.rep_users, 'messages': self.server.messages}
         self.server.messages = []
         self.server.messages_lock.release()
         self.server.migrating = True
@@ -49,7 +51,6 @@ class Migrator:
     def wait_interval(self):
         print(f'Waiting {self.interval}s to migrate')
         sleep(self.interval)
-        print('Attempting to migrate...')
 
     # Mod print to add server location
     def print(self, *args, **kwargs):

@@ -23,7 +23,6 @@ rel_client = socketio_client.Client()
 twin_client = socketio_client.Client()
 
 
-
 # Write server feedback on '.logs' file
 def fprint(text):
     with open('.logs', 'a') as logfile:
@@ -131,6 +130,13 @@ def handle_login(data):
 
     # New user
     if user not in sv.usernames:
+        # Replicate new user
+        try:
+            sv.twin_client.emit('rep_new_user', data)
+        except exc.BadNamespaceError:
+            pass
+
+        # Build new user
         sv.build_user(user, request.sid, data['ip'], data['port'], data['id'])
         socketio.emit('users', sv.n_clients, broadcast=True)
         socketio.emit('accepted', room=request.sid)
@@ -159,6 +165,14 @@ def disconnect():
     user = sv.users.pop(request.sid, False)
     if user and not sv.migrating:
         username = user.username
+
+        # Replicate disconnection
+        try:
+            sv.twin_client.emit('rep_disconnect', username)
+        except exc.BadNamespaceError:
+            pass
+
+        # Remove user
         sv.n_clients -= 1
         sv.usernames.remove(username)
         socketio.emit(
@@ -181,6 +195,9 @@ def migrate(data):
 @sio_client.on('prepare')
 def prepare(data):
     sv.old_users = data['users']
+    sv.usernames = set(data['usernames'])
+    sv.rep_users = data['rep_users']
+    sv.n_clients = len(sv.rep_users)
     sv.messages_lock.acquire()
     sv.messages = data['messages']
     sv.messages_lock.release()
@@ -225,8 +242,8 @@ def update_twin(data):
     try:
         sv.twin_client.connect(sv.twin_uri)
         sv.can_migrate = True
-    except exc.ConnectionError as err:
-        print(err)
+    except exc.ConnectionError:
+        pass
 
 
 # Replicate messages
@@ -239,6 +256,43 @@ def replicate_message(message):
     # Broadcast message
     if sv.n_clients >= sv.N_CLIENTS_REQUIRED:
         socketio.emit('response', message, broadcast=True)
+
+
+# Replicate new users
+@socketio.on('rep_new_user')
+def replicate_new_user(data):
+    sv.n_clients += 1
+    sv.rep_users[data['user']] = (data['ip'], data['port'], data['id'])
+    sv.usernames.add(data['user'])
+    socketio.emit('users', sv.n_clients, broadcast=True)
+
+    # Check if N required clients have joined
+    join_msg = f'{data["user"]} has joined the chat!'
+    sv.messages_lock.acquire()
+    sv.messages.append(join_msg)
+    sv.messages_lock.release()
+    if sv.n_clients == sv.N_CLIENTS_REQUIRED:
+        print('Chat is now active!')
+        broadcast_past_messages()
+        sv.N_CLIENTS_REQUIRED = -1  # Chat is permanent from now on
+    elif sv.n_clients > sv.N_CLIENTS_REQUIRED:
+        socketio.emit('response', join_msg, broadcast=True)
+
+
+# Replicate new users
+@socketio.on('rep_disconnect')
+def replicate_disconnection(username):
+    # Remove user
+    sv.rep_users.pop(username, False)
+    sv.n_clients -= 1
+    sv.usernames.remove(username)
+    socketio.emit('users', sv.n_clients, broadcast=True)
+    msg = f'{username} has left the chat!'
+    if sv.n_clients > sv.N_CLIENTS_REQUIRED:
+        socketio.emit('response', msg)
+    sv.messages_lock.acquire()
+    sv.messages.append(msg)
+    sv.messages_lock.release()
 
 # *******************************************************************
 
@@ -260,11 +314,11 @@ if __name__ == '__main__':
 
     # Mod print to add server name
     def print(*args, **kwargs):
-       builtins.print(f"||| {sv.ip}:{sv.port} |||", *args, **kwargs)
+       builtins.print(f'||| {sv.ip}:{sv.port} |||', *args, **kwargs)
 
     # Twin servers
     try:
-        if sv.twin_uri:                     # True if sv is the second twin
+        if sv.twin_uri:  # True for every server except the first one
             sv.can_migrate = False
             sv.twin_client.connect(sv.twin_uri)
             sv.twin_client.emit('twin', f'http://{sv.ip}:{sv.port}')

@@ -15,6 +15,7 @@ class Server:
 
         # Users
         self.users = dict()  # Key: socket ID, Value: User object
+        self.rep_users = dict()  # Key: rep_username, Value: User object
         self.old_users = dict()  # Key: "ip:port", Value: (username, node_id)
 
         # Usernames set (for quickly checking existence)
@@ -79,6 +80,8 @@ class Server:
         for user in self.users.values():
             if user.username == username:
                 return user.get_connections()
+        if username in self.rep_users:
+            return self.rep_users[username]
 
     # Choose new client to migrate the server
     def find_future_server(self):
