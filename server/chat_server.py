@@ -12,6 +12,19 @@ from server import Server, get_local_ip
 from socketio import exceptions as exc
 from time import sleep
 
+# TODO: Signal
+from signal import signal, SIGINT
+
+
+def signal_handler(sig, frame):
+    try:
+        pass
+    except exc.BadNamespaceError as err:
+        print(err)
+
+
+signal(SIGINT, signal_handler)
+
 
 # Server
 app = Flask(__name__)
@@ -205,8 +218,8 @@ def prepare(data):
     try:
         sv.relay_client.emit('register', {
             'new': [sv.ip, sv.port], 'old': sv.old_server[7:].split(':')})
-    except exc.BadNamespaceError as err:
-        print(err)
+    except exc.BadNamespaceError:
+        pass
     print('\nFinished receiving data from previous server!\n')
     sv.migrator.timer.start()
 
@@ -314,7 +327,7 @@ if __name__ == '__main__':
 
     # Mod print to add server name
     def print(*args, **kwargs):
-       builtins.print(f'||| {sv.ip}:{sv.port} |||', *args, **kwargs)
+        builtins.print(f'||| {sv.ip}:{sv.port} |||', *args, **kwargs)
 
     # Twin servers
     try:
@@ -322,7 +335,7 @@ if __name__ == '__main__':
             sv.can_migrate = False
             sv.twin_client.connect(sv.twin_uri)
             sv.twin_client.emit('twin', f'http://{sv.ip}:{sv.port}')
-    except (exc.ConnectionError, exc.BadNamespaceError) as err:
+    except (exc.ConnectionError, exc.BadNamespaceError):
         pass
 
     # New server setup
@@ -340,7 +353,6 @@ if __name__ == '__main__':
     try:
         socketio.run(app, host='0.0.0.0', port=server_port)
     except KeyboardInterrupt:
-        # TODO: Emergency ctrl+c
         pass
     finally:
         exit()

@@ -105,6 +105,24 @@ def connect(data):
     socketio.emit('connect_to_chat', chosen_server, room=request.sid)
     migration_lock.release()
 
+
+# Migrate back to relay server
+@socketio.on('create_server')
+def create_server(data):
+    server_port = get_free_port()
+    c_dir = os.path.dirname(os.path.realpath(__file__))
+    n_clients = data['n_clients']
+    ip = data['ip']
+    port = data['port']
+    rel = data['relay']
+    twin_data = data['twin']
+
+    # TODO: NOTE: Change stdout from "subprocess.DEVNULL" to "None" for debugging
+    subprocess.Popen(['python3', f'{c_dir}/chat_server.py',
+                      f'-{n_clients}', f'{server_port}', 'new', twin_data,
+                      f'{ip}:{port}', f'{rel}'],
+                     stdout=None, stderr=None)
+
 # *******************************************************************
 
 

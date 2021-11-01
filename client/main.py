@@ -11,6 +11,18 @@ from collections import deque
 from socketio import exceptions as exc
 from threading import Lock
 
+# TODO: signal
+from signal import signal, SIGINT
+
+
+def signal_handler(sig, frame):
+    if hosted_servers:
+        sio_lock.acquire()
+        # sio.emit('emergency')
+        sio_lock.release()
+    print('Closing...')
+    graceful_disconnect()
+
 
 # Socket IO client
 sio_a = socketio.Client()
@@ -39,6 +51,12 @@ ask_input = f'{54 * "-"}\nSpecial Commands:{36 * " "}|\n{53 * " "}|\n' \
 # Private message
 private_ready = True  # Protect current private message until p2p is ready
 private_msg = ''  # Current private message
+
+# TODO: Chat server hosting
+host_lock = Lock()
+host_changes = 0
+hosted_servers = 0
+hosting = False
 
 
 # Print chat & events
@@ -248,6 +266,7 @@ def connect_to_chat(data):
 @sio_a.on('create_server')
 @sio_b.on('create_server')
 def create_server(data):
+    global host_changes, hosted_servers
     server_port = p2p.get_free_port()
     current_dir = os.path.dirname(os.path.realpath(__file__))
     n_clients = data['n_clients']
@@ -259,16 +278,19 @@ def create_server(data):
         print('Creating new server...\n')
 
     # TODO: NOTE: Change stdout from "subprocess.DEVNULL" to "None" for debugging
-    subprocess.Popen(['python3', f'{current_dir}/../server/chat_server.py',
-                      f'-{n_clients}', f'{server_port}', 'new', twin,
-                      f'{ip}:{port}', f'{rel}'],
-                     stdout=None, stderr=None)
+    subprocess.Popen(
+        ['python3', f'{current_dir}/../server/chat_server.py',
+         f'-{n_clients}', f'{server_port}', 'new', twin,
+         f'{ip}:{port}', f'{rel}'], stdout=None, stderr=None)
+    with host_lock:
+        hosted_servers += 1
+        host_changes += 1
 
 
 @sio_a.on('reconnect')
 @sio_b.on('reconnect')
 def reconnect(new_server):
-    global sio, current_sio, accepted
+    global sio, current_sio, accepted, hosted_servers, host_changes, hosting
     sio_lock.acquire()
     sio.disconnect()
     if not current_sio:
@@ -290,6 +312,15 @@ def reconnect(new_server):
     except exc.ConnectionError:
         accepted = False
     sio_lock.release()
+    with host_lock:
+        if hosted_servers:
+            if hosting:
+                hosted_servers -= 1
+                host_changes += 1
+                if not hosted_servers:
+                    hosting = False
+            else:
+                hosting = True
 
 
 # Run client
