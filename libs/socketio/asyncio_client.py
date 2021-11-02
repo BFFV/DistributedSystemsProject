@@ -40,6 +40,11 @@ class AsyncClient(client.Client):
                  packets. Custom json modules must have ``dumps`` and ``loads``
                  functions that are compatible with the standard library
                  versions.
+    :param handle_sigint: Set to ``True`` to automatically handle disconnection
+                          when the process is interrupted, or to ``False`` to
+                          leave interrupt handling to the calling application.
+                          Interrupt handling can only be enabled when the
+                          client instance is created in the main thread.
 
     The Engine.IO configuration supports the following settings:
 
@@ -249,6 +254,12 @@ class AsyncClient(client.Client):
     async def call(self, event, data=None, namespace=None, timeout=60):
         """Emit a custom event to a client and wait for the response.
 
+        This method issues an emit with a callback and waits for the callback
+        to be invoked before returning. If the callback isn't invoked before
+        the timeout, then a ``TimeoutError`` exception is raised. If the
+        Socket.IO connection drops during the wait, this method still waits
+        until the specified timeout.
+
         :param event: The event name. It can be any string. The event names
                       ``'connect'``, ``'message'`` and ``'disconnect'`` are
                       reserved and should not be used.
@@ -311,9 +322,7 @@ class AsyncClient(client.Client):
         :param args: arguments to pass to the function.
         :param kwargs: keyword arguments to pass to the function.
 
-        This function returns an object compatible with the `Thread` class in
-        the Python standard library. The `start()` method on this object is
-        already called by this function.
+        The return value is a ``asyncio.Task`` object.
         """
         return self.eio.start_background_task(target, *args, **kwargs)
 
@@ -418,15 +427,23 @@ class AsyncClient(client.Client):
     async def _trigger_event(self, event, namespace, *args):
         """Invoke an application event handler."""
         # first see if we have an explicit handler for the event
-        if namespace in self.handlers and event in self.handlers[namespace]:
-            if asyncio.iscoroutinefunction(self.handlers[namespace][event]):
-                try:
-                    ret = await self.handlers[namespace][event](*args)
-                except asyncio.CancelledError:  # pragma: no cover
-                    ret = None
-            else:
-                ret = self.handlers[namespace][event](*args)
-            return ret
+        if namespace in self.handlers:
+            handler = None
+            if event in self.handlers[namespace]:
+                handler = self.handlers[namespace][event]
+            elif event not in self.reserved_events and \
+                    '*' in self.handlers[namespace]:
+                handler = self.handlers[namespace]['*']
+                args = (event, *args)
+            if handler:
+                if asyncio.iscoroutinefunction(handler):
+                    try:
+                        ret = await handler(*args)
+                    except asyncio.CancelledError:  # pragma: no cover
+                        ret = None
+                else:
+                    ret = handler(*args)
+                return ret
 
         # or else, forward the event to a namepsace handler if one exists
         elif namespace in self.namespace_handlers:
