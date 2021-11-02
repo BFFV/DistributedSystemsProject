@@ -31,6 +31,8 @@ class Server:
         if start:
             self.migrator.timer.start()
         self.can_migrate = True
+        self.attempting = False
+        self.emergency = False
 
         # Connection data
         self.ip = ip
@@ -86,6 +88,12 @@ class Server:
     # Choose new client to migrate the server
     def find_future_server(self):
         return choice(list(self.users.keys()))
+
+    # Choose new client to migrate the server on SIGINT
+    def find_emergency_server(self, sid):
+        print(list(self.users.keys()))
+        print([u for u in self.users.keys() if u != sid])
+        return choice([u for u in self.users.keys() if u != sid])
 
 
 # Get local ip of the server

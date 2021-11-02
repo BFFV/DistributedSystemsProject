@@ -78,11 +78,15 @@ class Server(object):
                             inactive clients are closed. Set to ``False`` to
                             disable the monitoring task (not recommended). The
                             default is ``True``.
+    :param transports: The list of allowed transports. Valid transports
+                       are ``'polling'`` and ``'websocket'``. Defaults to
+                       ``['polling', 'websocket']``.
     :param kwargs: Reserved for future extensions, any additional parameters
                    given as keyword arguments will be silently ignored.
     """
     compression_methods = ['gzip', 'deflate']
     event_names = ['connect', 'disconnect', 'message']
+    valid_transports = ['polling', 'websocket']
     _default_monitor_clients = True
     sequence_number = 0
 
@@ -91,7 +95,8 @@ class Server(object):
                  http_compression=True, compression_threshold=1024,
                  cookie=None, cors_allowed_origins=None,
                  cors_credentials=True, logger=False, json=None,
-                 async_handlers=True, monitor_clients=None, **kwargs):
+                 async_handlers=True, monitor_clients=None, transports=None,
+                 **kwargs):
         self.ping_timeout = ping_timeout
         if isinstance(ping_interval, tuple):
             self.ping_interval = ping_interval[0]
@@ -152,6 +157,14 @@ class Server(object):
                 self._async['asyncio']:  # pragma: no cover
             raise ValueError('The selected async_mode requires asyncio and '
                              'must use the AsyncServer class')
+        if transports is not None:
+            if isinstance(transports, str):
+                transports = [transports]
+            transports = [transport for transport in transports
+                          if transport in self.valid_transports]
+            if not transports:
+                raise ValueError('No valid transports provided')
+        self.transports = transports or self.valid_transports
         self.logger.info('Server initialized for %s.', self.async_mode)
 
     def is_asyncio_based(self):
@@ -333,8 +346,7 @@ class Server(object):
                         allowed_origins:
                     self._log_error_once(
                         origin + ' is not an accepted origin.', 'bad-origin')
-                    r = self._bad_request(
-                        origin + ' is not an accepted origin.')
+                    r = self._bad_request('Not an accepted origin.')
                     start_response(r['status'], r['headers'])
                     return [r['response']]
 
@@ -342,6 +354,14 @@ class Server(object):
         query = urllib.parse.parse_qs(environ.get('QUERY_STRING', ''))
         jsonp = False
         jsonp_index = None
+
+        # make sure the client uses an allowed transport
+        transport = query.get('transport', ['polling'])[0]
+        if transport not in self.transports:
+            self._log_error_once('Invalid transport', 'bad-transport')
+            r = self._bad_request('Invalid transport')
+            start_response(r['status'], r['headers'])
+            return [r['response']]
 
         # make sure the client speaks a compatible Engine.IO version
         sid = query['sid'][0] if 'sid' in query else None
@@ -369,7 +389,6 @@ class Server(object):
             r = self._bad_request('Invalid JSONP index number')
         elif method == 'GET':
             if sid is None:
-                transport = query.get('transport', ['polling'])[0]
                 # transport must be one of 'polling' or 'websocket'.
                 # if 'websocket', the HTTP_UPGRADE header must match.
                 upgrade_header = environ.get('HTTP_UPGRADE').lower() \
@@ -379,13 +398,13 @@ class Server(object):
                     r = self._handle_connect(environ, start_response,
                                              transport, jsonp_index)
                 else:
-                    self._log_error_once('Invalid transport ' + transport,
-                                         'bad-transport')
-                    r = self._bad_request('Invalid transport ' + transport)
+                    self._log_error_once('Invalid websocket upgrade',
+                                         'bad-upgrade')
+                    r = self._bad_request('Invalid websocket upgrade')
             else:
                 if sid not in self.sockets:
                     self._log_error_once('Invalid session ' + sid, 'bad-sid')
-                    r = self._bad_request('Invalid session ' + sid)
+                    r = self._bad_request('Invalid session')
                 else:
                     socket = self._get_socket(sid)
                     try:
@@ -405,7 +424,7 @@ class Server(object):
             if sid is None or sid not in self.sockets:
                 self._log_error_once(
                     'Invalid session ' + (sid or 'None'), 'bad-sid')
-                r = self._bad_request('Invalid session ' + (sid or 'None'))
+                r = self._bad_request('Invalid session')
             else:
                 socket = self._get_socket(sid)
                 try:
@@ -453,9 +472,9 @@ class Server(object):
         :param args: arguments to pass to the function.
         :param kwargs: keyword arguments to pass to the function.
 
-        This function returns an object compatible with the `Thread` class in
-        the Python standard library. The `start()` method on this object is
-        already called by this function.
+        This function returns an object that represents the background task,
+        on which the ``join()`` methond can be invoked to wait for the task to
+        complete.
         """
         th = self._async['thread'](target=target, args=args, kwargs=kwargs)
         th.start()

@@ -8,28 +8,17 @@ import socketio
 import subprocess
 import sys
 from collections import deque
+from signal import signal, SIGINT
 from socketio import exceptions as exc
 from threading import Lock
 
-# TODO: signal
-from signal import signal, SIGINT
-
-
-def signal_handler(sig, frame):
-    if hosted_servers:
-        sio_lock.acquire()
-        # sio.emit('emergency')
-        sio_lock.release()
-    print('Closing...')
-    graceful_disconnect()
-
 
 # Socket IO client
-sio_a = socketio.Client()
-sio_b = socketio.Client()
+sio_a = socketio.Client(handle_sigint=False)
+sio_b = socketio.Client(handle_sigint=False)
 sio = sio_a
 current_sio = 0
-relay_client = socketio.Client()
+relay_client = socketio.Client(handle_sigint=False)
 connected = False
 connecting = False
 accepted = False
@@ -52,11 +41,29 @@ ask_input = f'{54 * "-"}\nSpecial Commands:{36 * " "}|\n{53 * " "}|\n' \
 private_ready = True  # Protect current private message until p2p is ready
 private_msg = ''  # Current private message
 
-# TODO: Chat server hosting
+# Chat server hosting
 host_lock = Lock()
 host_changes = 0
 hosted_servers = 0
 hosting = False
+
+
+# SIGINT handler
+def safe_close(sig, frame):
+    while True:
+        with host_lock:
+            current_changes = host_changes
+            if not hosted_servers:
+                break
+            elif hosted_servers == 1:
+                with sio_lock:
+                    sio.emit('emergency')
+        while host_changes == current_changes:
+            pass
+    graceful_disconnect()
+
+
+signal(SIGINT, safe_close)
 
 
 # Print chat & events
@@ -357,7 +364,5 @@ if __name__ == '__main__':
             send_message()
     except (exc.ConnectionError, exc.BadNamespaceError):
         print('A connection error has occurred, please try to connect again...')
-    except KeyboardInterrupt:
-        pass
     finally:
         graceful_disconnect()

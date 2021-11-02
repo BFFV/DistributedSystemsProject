@@ -9,21 +9,9 @@ import builtins
 from flask import Flask, request
 from flask_socketio import SocketIO
 from server import Server, get_local_ip
+from signal import signal, SIGINT
 from socketio import exceptions as exc
 from time import sleep
-
-# TODO: Signal
-from signal import signal, SIGINT
-
-
-def signal_handler(sig, frame):
-    try:
-        pass
-    except exc.BadNamespaceError as err:
-        print(err)
-
-
-signal(SIGINT, signal_handler)
 
 
 # Server
@@ -31,9 +19,17 @@ app = Flask(__name__)
 log = logging.getLogger('werkzeug')
 log.disabled = True
 socketio = SocketIO(app)
-sio_client = socketio_client.Client()
-rel_client = socketio_client.Client()
-twin_client = socketio_client.Client()
+sio_client = socketio_client.Client(handle_sigint=False)
+rel_client = socketio_client.Client(handle_sigint=False)
+twin_client = socketio_client.Client(handle_sigint=False)
+
+
+# Ignore direct SIGINT
+def signal_handler(sig, frame):
+    pass
+
+
+signal(SIGINT, signal_handler)
 
 
 # Write server feedback on '.logs' file
@@ -306,6 +302,19 @@ def replicate_disconnection(username):
     sv.messages_lock.acquire()
     sv.messages.append(msg)
     sv.messages_lock.release()
+
+
+# Emergency migration on SIGINT
+@socketio.on('emergency')
+def emergency():
+    if sv.attempting:
+        return
+    sv.emergency = True
+    sv.find_emergency_server(request.sid)
+    # migrate to clients different from request.sid
+    # if no clients, migrate to relay
+    # if no relay, gg
+    pass
 
 # *******************************************************************
 
