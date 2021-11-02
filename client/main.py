@@ -60,7 +60,6 @@ def safe_close(sig, frame):
                     sio.emit('emergency')
         while host_changes == current_changes:
             pass
-    graceful_disconnect()
 
 
 signal(SIGINT, safe_close)

@@ -8,7 +8,7 @@ from user import User
 # Chat server
 class Server:
     def __init__(self, ip, port, sio, sio_client, relay_client, relay_uri,
-                 twin_client, twin_uri, start=True):
+                 twin_client, twin_uri, server_type):
         # Client counter
         self.N_CLIENTS_REQUIRED = 2
         self.n_clients = 0
@@ -25,10 +25,13 @@ class Server:
         self.messages = []
         self.messages_lock = Lock()
 
+        # Server type
+        self.server_type = server_type
+
         # Migration thread
         self.migrating = False
         self.migrator = Migrator(self)
-        if start:
+        if server_type == 'original':
             self.migrator.timer.start()
         self.can_migrate = True
         self.attempting = False
@@ -91,9 +94,10 @@ class Server:
 
     # Choose new client to migrate the server on SIGINT
     def find_emergency_server(self, sid):
-        print(list(self.users.keys()))
-        print([u for u in self.users.keys() if u != sid])
-        return choice([u for u in self.users.keys() if u != sid])
+        different_clients = [u for u in self.users.keys() if u != sid]
+        if not different_clients:
+            return False
+        return choice(different_clients)
 
 
 # Get local ip of the server

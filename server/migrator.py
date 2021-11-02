@@ -44,8 +44,10 @@ class Migrator:
         users_info = {f'{x.ip}:{x.port}': x.username
                       for x in self.server.users.values()}
         self.server.messages_lock.acquire()
-        chat_data = {'users': users_info, 'usernames': list(self.server.usernames),
-                     'rep_users': self.server.rep_users, 'messages': self.server.messages}
+        chat_data = {'users': users_info,
+                     'usernames': list(self.server.usernames),
+                     'rep_users': self.server.rep_users,
+                     'messages': self.server.messages}
         self.server.messages = []
         self.server.messages_lock.release()
         self.server.migrating = True

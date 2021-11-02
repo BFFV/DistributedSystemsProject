@@ -26,7 +26,12 @@ twin_client = socketio_client.Client(handle_sigint=False)
 
 # Ignore direct SIGINT
 def signal_handler(sig, frame):
-    pass
+    if sv.server_type == 'new':
+        return
+    if sv.old_server:
+        sv.relay_client.disconnect()
+    sv.twin_client.disconnect()
+    sv.sio.stop()
 
 
 signal(SIGINT, signal_handler)
@@ -307,14 +312,27 @@ def replicate_disconnection(username):
 # Emergency migration on SIGINT
 @socketio.on('emergency')
 def emergency():
+    # Already migrating
     if sv.attempting:
         return
+
+    # Emergency migration
     sv.emergency = True
-    sv.find_emergency_server(request.sid)
-    # migrate to clients different from request.sid
-    # if no clients, migrate to relay
-    # if no relay, gg
-    pass
+    data = {'n_clients': sv.N_CLIENTS_REQUIRED,
+            'ip': sv.ip, 'port': sv.port,
+            'relay': sv.relay, 'twin': sv.twin_uri}
+    chosen = sv.find_emergency_server(request.sid)
+
+    # Migrate to new client
+    if chosen:
+        sv.sio.emit('create_server', data, room=chosen)
+        return
+
+    # Migrate to relay
+    try:
+        sv.relay_client.emit('create_server', data)
+    except exc.BadNamespaceError:
+        pass
 
 # *******************************************************************
 
@@ -331,7 +349,7 @@ if __name__ == '__main__':
         relay = sys.argv[6]
     twin = sys.argv[4]
     sv = Server(local_ip, server_port, socketio, sio_client, rel_client, relay,
-                twin_client, twin, start=server_type != 'new')
+                twin_client, twin, server_type)
     sv.N_CLIENTS_REQUIRED = server_n
 
     # Mod print to add server name
@@ -348,7 +366,7 @@ if __name__ == '__main__':
         pass
 
     # New server setup
-    if server_type == 'new':
+    if server_type != 'original':
         try:
             sv.relay_client.connect(sv.relay)
         except exc.ConnectionError:
@@ -361,7 +379,5 @@ if __name__ == '__main__':
         sv.client.emit('migrate', new_server)
     try:
         socketio.run(app, host='0.0.0.0', port=server_port)
-    except KeyboardInterrupt:
-        pass
     finally:
         exit()

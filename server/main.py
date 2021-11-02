@@ -119,7 +119,7 @@ def create_server(data):
 
     # TODO: NOTE: Change stdout from "subprocess.DEVNULL" to "None" for debugging
     subprocess.Popen(['python3', f'{c_dir}/chat_server.py',
-                      f'-{n_clients}', f'{server_port}', 'new', twin_data,
+                      f'-{n_clients}', f'{server_port}', 'new_relay', twin_data,
                       f'{ip}:{port}', f'{rel}'],
                      stdout=None, stderr=None)
 
