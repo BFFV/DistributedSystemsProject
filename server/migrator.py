@@ -5,7 +5,7 @@ from time import sleep
 
 # Migrator thread
 class Migrator:
-    def __init__(self, server, interval=10):  # TODO: interval=30
+    def __init__(self, server, interval=30):
         self.server = server
         self.interval = interval
         self.timer = Thread(target=self.run, daemon=True)
@@ -13,16 +13,18 @@ class Migrator:
     # Start migration to client machine
     def run(self):
         # Migration timer cycle
+        chosen = None
         waiting = True
         while waiting:
             self.wait_interval()
             while not self.server.can_migrate:
-                sleep(1)
+                sleep(0.5)
             while self.server.emergency:
-                pass
+                sleep(0.5)
             self.server.attempting = True
             self.print('Attempting to migrate...')
-            if not self.server.users:
+            chosen = self.server.find_future_server()
+            if not chosen and not self.server.emergency:
                 addr = f'http://{self.server.ip}:{self.server.port}'
                 self.server.twin_client.emit('twin', addr)
                 self.server.can_migrate = False
@@ -31,7 +33,6 @@ class Migrator:
                 waiting = False
 
         # Create new server from client
-        chosen = self.server.find_future_server()
         data = {'n_clients': self.server.N_CLIENTS_REQUIRED,
                 'ip': self.server.ip, 'port': self.server.port,
                 'relay': self.server.relay, 'twin': self.server.twin_uri}
@@ -60,4 +61,5 @@ class Migrator:
 
     # Mod print to add server location
     def print(self, *args, **kwargs):
-        builtins.print(f'||| {self.server.ip}:{self.server.port} |||', *args, **kwargs)
+        builtins.print(
+            f'||| {self.server.ip}:{self.server.port} |||', *args, **kwargs)

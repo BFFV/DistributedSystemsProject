@@ -46,10 +46,13 @@ host_lock = Lock()
 host_changes = 0
 hosted_servers = 0
 hosting = False
+disconnecting = False
 
 
 # SIGINT handler
 def safe_close(sig, frame):
+    global disconnecting
+    disconnecting = True
     while True:
         with host_lock:
             current_changes = host_changes
@@ -311,7 +314,8 @@ def reconnect(new_server):
         sio.connect(new_server)
         if accepted:
             sio.emit('login', {
-                'ip': p2p_node.host, 'port': p2p_node.port, 'id': p2p_node.id
+                'ip': p2p_node.host, 'port': p2p_node.port,
+                'id': p2p_node.id, 'valid': not disconnecting,
             })
         if debug:
             print('Switched successfully!\n')
@@ -327,6 +331,17 @@ def reconnect(new_server):
                     hosting = False
             else:
                 hosting = True
+
+
+# Client exit on SIGINT
+@sio_a.on('finished')
+@sio_b.on('finished')
+def force_exit():
+    global hosted_servers, hosting, host_changes
+    with host_lock:
+        hosted_servers = 0
+        host_changes += 1
+        hosting = False
 
 
 # Run client

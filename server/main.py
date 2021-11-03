@@ -61,8 +61,7 @@ def get_closest_server(client, servers):
         if distance < closest:
             best_server = s
             closest = distance
-        elif (distance == closest) and \
-                (abs(s[1] - client[1]) < abs(best_server[1] - client[1])):
+        elif (distance == closest) and (s[1] < best_server[1]):
             best_server = s
             closest = distance
     return best_server
@@ -99,9 +98,8 @@ def register(data):
 @socketio.on('connect_to_chat')
 def connect(data):
     migration_lock.acquire()
-    # Use get_different_server for debugging replication
-    # TODO: chosen_server = get_closest_server(data, SERVER)
-    chosen_server = get_different_server(data, SERVER)
+    # NOTE: Use get_different_server for debugging replication
+    chosen_server = get_closest_server(data, SERVER)
     socketio.emit('connect_to_chat', chosen_server, room=request.sid)
     migration_lock.release()
 

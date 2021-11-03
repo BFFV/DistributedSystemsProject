@@ -24,17 +24,41 @@ rel_client = socketio_client.Client(handle_sigint=False)
 twin_client = socketio_client.Client(handle_sigint=False)
 
 
-# Ignore direct SIGINT
-def signal_handler(sig, frame):
+# SIGINT handler
+def safe_close(sig, frame):
+    # Client hosted servers are handled by the client
     if sv.server_type == 'new':
         return
-    if sv.old_server:
-        sv.relay_client.disconnect()
+
+    # Already migrating
+    if sv.attempting:
+        return
+
+    # Emergency migration
+    sv.emergency = True
+
+    # Wait for twin to be ready
+    while not sv.can_migrate:
+        sleep(0.5)
+
+    # Execute migration
+    data = {'n_clients': sv.N_CLIENTS_REQUIRED,
+            'ip': sv.ip, 'port': sv.port,
+            'relay': sv.relay, 'twin': sv.twin_uri}
+    chosen = sv.find_future_server()
+
+    # Migrate to new client
+    if chosen:
+        sv.sio.emit('create_server', data, room=chosen)
+        return
+
+    # No clients
     sv.twin_client.disconnect()
+    sleep(2)
     sv.sio.stop()
 
 
-signal(SIGINT, signal_handler)
+signal(SIGINT, safe_close)
 
 
 # Write server feedback on '.logs' file
@@ -127,6 +151,8 @@ def handle_login(data):
     c_data = f'{data["ip"]}:{data["port"]}'
     if c_data in sv.old_users:
         user = sv.old_users[c_data]
+        if not data['valid']:
+            sv.invalid_users.add(user)
         sv.build_user(user, request.sid, data['ip'], data['port'], data['id'])
         if sv.n_clients == sv.N_CLIENTS_REQUIRED:
             print('Chat is now active!')
@@ -189,6 +215,8 @@ def disconnect():
         # Remove user
         sv.n_clients -= 1
         sv.usernames.remove(username)
+        if username in sv.invalid_users:
+            sv.invalid_users.remove(username)
         socketio.emit(
             'users', sv.n_clients, broadcast=True, include_self=False)
         msg = f'{username} has left the chat!'
@@ -239,7 +267,10 @@ def ready():
     if sv.old_server:
         sv.relay_client.disconnect()
     sv.twin_client.disconnect()
-    sv.sio.emit('reconnect', sv.new_server)
+    if sv.skip:
+        sv.sio.emit('reconnect', sv.new_server, skip_sid=sv.skip)
+    else:
+        sv.sio.emit('reconnect', sv.new_server)
     sv.sio.stop()
 
 
@@ -318,6 +349,17 @@ def emergency():
 
     # Emergency migration
     sv.emergency = True
+
+    # Disconnect host client
+    disconnect()
+    sv.sio.emit('finished', room=request.sid)
+    sv.skip = request.sid
+
+    # Wait for twin to be ready
+    while not sv.can_migrate:
+        sleep(0.5)
+
+    # Execute migration
     data = {'n_clients': sv.N_CLIENTS_REQUIRED,
             'ip': sv.ip, 'port': sv.port,
             'relay': sv.relay, 'twin': sv.twin_uri}
@@ -331,8 +373,15 @@ def emergency():
     # Migrate to relay
     try:
         sv.relay_client.emit('create_server', data)
+        return
     except exc.BadNamespaceError:
         pass
+
+    # Exit
+    sv.relay_client.disconnect()
+    sv.twin_client.disconnect()
+    sleep(2)
+    sv.sio.stop()
 
 # *******************************************************************
 
@@ -359,7 +408,6 @@ if __name__ == '__main__':
     # Twin servers
     try:
         if sv.twin_uri:  # True for every server except the first one
-            sv.can_migrate = False
             sv.twin_client.connect(sv.twin_uri)
             sv.twin_client.emit('twin', f'http://{sv.ip}:{sv.port}')
     except (exc.ConnectionError, exc.BadNamespaceError):
