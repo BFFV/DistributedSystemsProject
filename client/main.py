@@ -6,18 +6,18 @@ import os
 import p2p
 import socketio
 import subprocess
-import sys
 from collections import deque
+from signal import signal, SIGINT
 from socketio import exceptions as exc
 from threading import Lock
 
 
 # Socket IO client
-sio_a = socketio.Client()
-sio_b = socketio.Client()
+sio_a = socketio.Client(handle_sigint=False)
+sio_b = socketio.Client(handle_sigint=False)
 sio = sio_a
 current_sio = 0
-relay_client = socketio.Client()
+relay_client = socketio.Client(handle_sigint=False)
 connected = False
 connecting = False
 accepted = False
@@ -39,6 +39,32 @@ ask_input = f'{54 * "-"}\nSpecial Commands:{36 * " "}|\n{53 * " "}|\n' \
 # Private message
 private_ready = True  # Protect current private message until p2p is ready
 private_msg = ''  # Current private message
+
+# Chat server hosting
+host_lock = Lock()
+host_changes = 0
+hosted_servers = 0
+hosting = False
+disconnecting = False
+
+
+# SIGINT handler
+def safe_close(sig, frame):
+    global disconnecting
+    disconnecting = True
+    while True:
+        with host_lock:
+            current_changes = host_changes
+            if not hosted_servers:
+                break
+            elif hosted_servers == 1:
+                with sio_lock:
+                    sio.emit('emergency')
+        while host_changes == current_changes:
+            pass
+
+
+signal(SIGINT, safe_close)
 
 
 # Print chat & events
@@ -248,6 +274,7 @@ def connect_to_chat(data):
 @sio_a.on('create_server')
 @sio_b.on('create_server')
 def create_server(data):
+    global host_changes, hosted_servers
     server_port = p2p.get_free_port()
     current_dir = os.path.dirname(os.path.realpath(__file__))
     n_clients = data['n_clients']
@@ -258,17 +285,21 @@ def create_server(data):
     if debug:
         print('Creating new server...\n')
 
-    # TODO: NOTE: Change stdout from "subprocess.DEVNULL" to "None" for debugging
-    subprocess.Popen(['python3', f'{current_dir}/../server/chat_server.py',
-                      f'-{n_clients}', f'{server_port}', 'new', twin,
-                      f'{ip}:{port}', f'{rel}'],
-                     stdout=None, stderr=None)
+    # NOTE: Change stdout from "subprocess.DEVNULL" to "None" for debugging
+    subprocess.Popen(
+        ['python3', f'{current_dir}/../server/chat_server.py',
+         f'-{n_clients}', f'{server_port}', 'new', twin,
+         f'{ip}:{port}', f'{rel}'],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    with host_lock:
+        hosted_servers += 1
+        host_changes += 1
 
 
 @sio_a.on('reconnect')
 @sio_b.on('reconnect')
 def reconnect(new_server):
-    global sio, current_sio, accepted
+    global sio, current_sio, accepted, hosted_servers, host_changes, hosting
     sio_lock.acquire()
     sio.disconnect()
     if not current_sio:
@@ -283,13 +314,34 @@ def reconnect(new_server):
         sio.connect(new_server)
         if accepted:
             sio.emit('login', {
-                'ip': p2p_node.host, 'port': p2p_node.port, 'id': p2p_node.id
+                'ip': p2p_node.host, 'port': p2p_node.port,
+                'id': p2p_node.id, 'valid': not disconnecting,
             })
         if debug:
             print('Switched successfully!\n')
     except exc.ConnectionError:
         accepted = False
     sio_lock.release()
+    with host_lock:
+        if hosted_servers:
+            if hosting:
+                hosted_servers -= 1
+                host_changes += 1
+                if not hosted_servers:
+                    hosting = False
+            else:
+                hosting = True
+
+
+# Client exit on SIGINT
+@sio_a.on('finished')
+@sio_b.on('finished')
+def force_exit():
+    global hosted_servers, hosting, host_changes
+    with host_lock:
+        hosted_servers = 0
+        host_changes += 1
+        hosting = False
 
 
 # Run client
@@ -300,21 +352,18 @@ if __name__ == '__main__':
     # Client
     p2p_node = p2p.init_p2p(private_event)
     uri = 'http://127.0.0.1:5000'
-    if len(sys.argv) > 1:
-        uri = sys.argv[1]
     try:
-        print(f'Server URI: {uri}')
-        print(f'Personal P2P address: {p2p_node.host}:{p2p_node.port}\n')
+        print(f'Client URI: {p2p_node.host}:{p2p_node.port}\n')
 
         # Connect to chat server
         relay_client.connect(uri)
         while not connected:
             if not connected and not connecting:
-                print('Trying to connect to server...')
+                print('Trying to connect to chat server...')
                 relay_client.emit(
                     'connect_to_chat', [p2p_node.host, p2p_node.port])
                 connecting = True
-        print('Successfully connected to server!')
+        print('Successfully connected to chat server!')
 
         # Enter chat room
         user_login()
@@ -326,7 +375,5 @@ if __name__ == '__main__':
             send_message()
     except (exc.ConnectionError, exc.BadNamespaceError):
         print('A connection error has occurred, please try to connect again...')
-    except KeyboardInterrupt:
-        pass
     finally:
         graceful_disconnect()

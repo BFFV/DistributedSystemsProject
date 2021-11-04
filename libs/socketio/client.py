@@ -68,6 +68,11 @@ class Client(object):
                  packets. Custom json modules must have ``dumps`` and ``loads``
                  functions that are compatible with the standard library
                  versions.
+    :param handle_sigint: Set to ``True`` to automatically handle disconnection
+                          when the process is interrupted, or to ``False`` to
+                          leave interrupt handling to the calling application.
+                          Interrupt handling can only be enabled when the
+                          client instance is created in the main thread.
 
     The Engine.IO configuration supports the following settings:
 
@@ -87,12 +92,14 @@ class Client(object):
                             fatal errors are logged even when
                             ``engineio_logger`` is ``False``.
     """
+    reserved_events = ['connect', 'connect_error', 'disconnect']
+
     def __init__(self, reconnection=True, reconnection_attempts=0,
                  reconnection_delay=1, reconnection_delay_max=5,
                  randomization_factor=0.5, logger=False, serializer='default',
-                 json=None, **kwargs):
+                 json=None, handle_sigint=True, **kwargs):
         global original_signal_handler
-        if original_signal_handler is None and \
+        if handle_sigint and original_signal_handler is None and \
                 threading.current_thread() == threading.main_thread():
             original_signal_handler = signal.signal(signal.SIGINT,
                                                     signal_handler)
@@ -101,8 +108,10 @@ class Client(object):
         self.reconnection_delay = reconnection_delay
         self.reconnection_delay_max = reconnection_delay_max
         self.randomization_factor = randomization_factor
+        self.handle_sigint = handle_sigint
 
         engineio_options = kwargs
+        engineio_options['handle_sigint'] = handle_sigint
         engineio_logger = engineio_options.pop('engineio_logger', None)
         if engineio_logger is not None:
             engineio_options['logger'] = engineio_logger
@@ -141,8 +150,8 @@ class Client(object):
         self.socketio_path = None
         self.sid = None
 
-        self.connected = False
-        self.namespaces = {}
+        self.connected = False  #: Indicates if the client is connected or not.
+        self.namespaces = {}  #: set of connected namespaces.
         self.handlers = {}
         self.namespace_handlers = {}
         self.callbacks = {}
@@ -423,6 +432,12 @@ class Client(object):
     def call(self, event, data=None, namespace=None, timeout=60):
         """Emit a custom event to a client and wait for the response.
 
+        This method issues an emit with a callback and waits for the callback
+        to be invoked before returning. If the callback isn't invoked before
+        the timeout, then a ``TimeoutError`` exception is raised. If the
+        Socket.IO connection drops during the wait, this method still waits
+        until the specified timeout.
+
         :param event: The event name. It can be any string. The event names
                       ``'connect'``, ``'message'`` and ``'disconnect'`` are
                       reserved and should not be used.
@@ -500,9 +515,9 @@ class Client(object):
         :param args: arguments to pass to the function.
         :param kwargs: keyword arguments to pass to the function.
 
-        This function returns an object compatible with the `Thread` class in
-        the Python standard library. The `start()` method on this object is
-        already called by this function.
+        This function returns an object that represents the background task,
+        on which the ``join()`` methond can be invoked to wait for the task to
+        complete.
         """
         return self.eio.start_background_task(target, *args, **kwargs)
 
@@ -609,8 +624,12 @@ class Client(object):
     def _trigger_event(self, event, namespace, *args):
         """Invoke an application event handler."""
         # first see if we have an explicit handler for the event
-        if namespace in self.handlers and event in self.handlers[namespace]:
-            return self.handlers[namespace][event](*args)
+        if namespace in self.handlers:
+            if event in self.handlers[namespace]:
+                return self.handlers[namespace][event](*args)
+            elif event not in self.reserved_events and \
+                    '*' in self.handlers[namespace]:
+                return self.handlers[namespace]['*'](event, *args)
 
         # or else, forward the event to a namespace handler if one exists
         elif namespace in self.namespace_handlers:

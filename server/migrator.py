@@ -13,21 +13,26 @@ class Migrator:
     # Start migration to client machine
     def run(self):
         # Migration timer cycle
+        chosen = None
         waiting = True
         while waiting:
             self.wait_interval()
             while not self.server.can_migrate:
-                sleep(1)
+                sleep(0.5)
+            while self.server.emergency:
+                sleep(0.5)
+            self.server.attempting = True
             self.print('Attempting to migrate...')
-            if not self.server.users:
+            chosen = self.server.find_future_server()
+            if not chosen and not self.server.emergency:
                 addr = f'http://{self.server.ip}:{self.server.port}'
                 self.server.twin_client.emit('twin', addr)
                 self.server.can_migrate = False
-            else:
+                self.server.attempting = False
+            elif not self.server.emergency:
                 waiting = False
 
         # Create new server from client
-        chosen = self.server.find_future_server()
         data = {'n_clients': self.server.N_CLIENTS_REQUIRED,
                 'ip': self.server.ip, 'port': self.server.port,
                 'relay': self.server.relay, 'twin': self.server.twin_uri}
@@ -40,8 +45,10 @@ class Migrator:
         users_info = {f'{x.ip}:{x.port}': x.username
                       for x in self.server.users.values()}
         self.server.messages_lock.acquire()
-        chat_data = {'users': users_info, 'usernames': list(self.server.usernames),
-                     'rep_users': self.server.rep_users, 'messages': self.server.messages}
+        chat_data = {'users': users_info,
+                     'usernames': list(self.server.usernames),
+                     'rep_users': self.server.rep_users,
+                     'messages': self.server.messages}
         self.server.messages = []
         self.server.messages_lock.release()
         self.server.migrating = True
@@ -54,4 +61,5 @@ class Migrator:
 
     # Mod print to add server location
     def print(self, *args, **kwargs):
-        builtins.print(f'||| {self.server.ip}:{self.server.port} |||', *args, **kwargs)
+        builtins.print(
+            f'||| {self.server.ip}:{self.server.port} |||', *args, **kwargs)

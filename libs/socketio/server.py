@@ -106,6 +106,8 @@ class Server(object):
                             fatal errors are logged even when
                             ``engineio_logger`` is ``False``.
     """
+    reserved_events = ['connect', 'disconnect']
+
     def __init__(self, client_manager=None, logger=False, serializer='default',
                  json=None, async_handlers=True, always_connect=False,
                  **kwargs):
@@ -355,6 +357,12 @@ class Server(object):
              timeout=60, **kwargs):
         """Emit a custom event to a client and wait for the response.
 
+        This method issues an emit with a callback and waits for the callback
+        to be invoked before returning. If the callback isn't invoked before
+        the timeout, then a ``TimeoutError`` exception is raised. If the
+        Socket.IO connection drops during the wait, this method still waits
+        until the specified timeout.
+
         :param event: The event name. It can be any string. The event names
                       ``'connect'``, ``'message'`` and ``'disconnect'`` are
                       reserved and should not be used.
@@ -599,9 +607,9 @@ class Server(object):
         :param args: arguments to pass to the function.
         :param kwargs: keyword arguments to pass to the function.
 
-        This function returns an object compatible with the `Thread` class in
-        the Python standard library. The `start()` method on this object is
-        already called by this function.
+        This function returns an object that represents the background task,
+        on which the ``join()`` methond can be invoked to wait for the task to
+        complete.
         """
         return self.eio.start_background_task(target, *args, **kwargs)
 
@@ -732,8 +740,12 @@ class Server(object):
     def _trigger_event(self, event, namespace, *args):
         """Invoke an application event handler."""
         # first see if we have an explicit handler for the event
-        if namespace in self.handlers and event in self.handlers[namespace]:
-            return self.handlers[namespace][event](*args)
+        if namespace in self.handlers:
+            if event in self.handlers[namespace]:
+                return self.handlers[namespace][event](*args)
+            elif event not in self.reserved_events and \
+                    '*' in self.handlers[namespace]:
+                return self.handlers[namespace]['*'](event, *args)
 
         # or else, forward the event to a namespace handler if one exists
         elif namespace in self.namespace_handlers:

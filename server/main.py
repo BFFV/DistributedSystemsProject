@@ -61,8 +61,7 @@ def get_closest_server(client, servers):
         if distance < closest:
             best_server = s
             closest = distance
-        elif (distance == closest) and \
-                (abs(s[1] - client[1]) < abs(best_server[1] - client[1])):
+        elif (distance == closest) and (s[1] < best_server[1]):
             best_server = s
             closest = distance
     return best_server
@@ -99,11 +98,28 @@ def register(data):
 @socketio.on('connect_to_chat')
 def connect(data):
     migration_lock.acquire()
-    # Use get_different_server for debugging replication
-    # TODO: chosen_server = get_closest_server(data, SERVER)
-    chosen_server = get_different_server(data, SERVER)
+    # NOTE: Use get_different_server for debugging replication
+    chosen_server = get_closest_server(data, SERVER)
     socketio.emit('connect_to_chat', chosen_server, room=request.sid)
     migration_lock.release()
+
+
+# Migrate back to relay server
+@socketio.on('create_server')
+def create_server(data):
+    server_port = get_free_port()
+    c_dir = os.path.dirname(os.path.realpath(__file__))
+    n_clients = data['n_clients']
+    ip = data['ip']
+    port = data['port']
+    rel = data['relay']
+    twin_data = data['twin']
+
+    # NOTE: Change stdout from "subprocess.DEVNULL" to "None" for debugging
+    subprocess.Popen(['python3', f'{c_dir}/chat_server.py',
+                      f'-{n_clients}', f'{server_port}', 'new_relay', twin_data,
+                      f'{ip}:{port}', f'{rel}'],
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 # *******************************************************************
 
@@ -124,20 +140,20 @@ if __name__ == '__main__':
     for n in range(2):
         chat_server_port = get_free_port()
 
-        # TODO: NOTE: Change stdout from 'subprocess.DEVNULL' to 'None' for debugging
+        # NOTE: Change stdout from 'subprocess.DEVNULL' to 'None' for debugging
         twin = ''
         if n:
             twin = f'http://{SERVER[0][0]}:{SERVER[0][1]}'
         subprocess.Popen(['python3', f'{current_dir}/chat_server.py',
                           f'-{N_CLIENTS_REQUIRED}',
                           f'{chat_server_port}', 'original', twin],
-                         stdout=None, stderr=None)
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         SERVER.append([server_ip, chat_server_port])
     show_server_locations()
 
     # Run
     print(f'Relay Server URI: http://{server_ip}:{relay_server_port}')
-    print(f'Chat Server initialized (N = {N_CLIENTS_REQUIRED})')
+    print(f'Chat Servers initialized (N = {N_CLIENTS_REQUIRED})')
     try:
         socketio.run(app, host='0.0.0.0', port=relay_server_port)
     except KeyboardInterrupt:
