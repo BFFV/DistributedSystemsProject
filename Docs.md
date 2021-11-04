@@ -63,39 +63,6 @@ El servidor y la comunicación con este se realizó utilizando el lenguaje [**Py
 - Recomendamos usar **virtualenv** con Python 3.8+.
 - Las librerías requeridas se encuentran dentro del archivo ``requirements.txt`` (ya no es necesario tenerlas).
 
-### *Deployment*
-
-El proceso para realizar el deploy consta de los siguientes pasos:
-
-1. Ingresar a [heroku.com](https://www.heroku.com/) e iniciar sesión.
-   - En caso de no tener cuenta, primero debes crearla.
-2. Una vez que se despliegue el _dashboard_, presionar la opción 'Create new app' que se despliega al presionar 'New' en la esquina superior derecha:
-
-![Botón New](https://imgur.com/j7LuSUY.png)
-
-3. Elegir un nombre de la app y presionar 'Create app'.
-
-![Botón New](https://imgur.com/Jrn5cW5.png)
-
-4. Iniciar sesión en heroku desde la consola con el comando:
-
-```
-heroku login
-```
-
-   - Si el comando `heroku` no está instalado, seguir [estas](https://devcenter.heroku.com/articles/heroku-cli) instrucciones.
-
-5. Dentro de la carpeta del repositorio, ejecutar:
-
-```
-heroku git:remote -a [nombre-de-la-app]
-```
-
-6. Finalmente, estando en la rama ``main`` de tu repositorio, ejecutar:
-```
-git push heroku main
-```
-
 ### Server
 
 Dentro del directorio **server** se encuentra el archivo que monta el servidor **(main.py)**.
@@ -189,7 +156,7 @@ Mediante el uso de 3 o más clientes conectados, se recomienda probar el comando
 
 Así se mantienen los requerimientos: [#5](#req5) y [#6](#req6)
 
-#### Producción **(Tarea 1)**
+#### Producción **(Tarea 1 solamente)**
 
 Para iniciar una prueba en un servidor externo, debe ejecutar el siguiente comando:
 
