@@ -2,16 +2,19 @@ Grupo 3 - Sistemas Distribuidos
 
 * Integrantes:
 
-- Juan Aguillón ([@vikingjuan](https://github.com/vikingjuan))
-- Benjamín Farías ([@BFFV](https://github.com/BFFV))
-- Tomás García ([@tgarcia5](https://github.com/tgarcia5))
-- Francisco Guíñez ([@fguinez](https://github.com/fguinez))
-- Christian Klempau ([@Christian-Klempau](https://github.com/Christian-Klempau))
-- Amaranta Salas ([@amyaranta](https://github.com/amyaranta))
+- Juan Aguillón
+- Benjamín Farías
+- Tomás García
+- Francisco Guíñez
+- Christian Klempau
+- Amaranta Salas
 
 Profesor: Javier Bustos
 
-NOTA: Debe tener instalado python 3.8 (o más reciente) en su computador.
+############################################# NOTAS IMPORTANTES ###################################################
+* Debe tener instalado python 3.8 (o más reciente) en su computador.
+* La tarea fue testeada en su mayoría en Windows, por lo que recomendamos utilizar este SO al momento de correrla.
+###################################################################################################################
 
 * Servidor
 
