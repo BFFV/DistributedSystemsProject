@@ -6,7 +6,6 @@ import os
 import p2p
 import socketio
 import subprocess
-import sys
 from collections import deque
 from signal import signal, SIGINT
 from socketio import exceptions as exc
@@ -286,11 +285,12 @@ def create_server(data):
     if debug:
         print('Creating new server...\n')
 
-    # TODO: NOTE: Change stdout from "subprocess.DEVNULL" to "None" for debugging
+    # NOTE: Change stdout from "subprocess.DEVNULL" to "None" for debugging
     subprocess.Popen(
         ['python3', f'{current_dir}/../server/chat_server.py',
          f'-{n_clients}', f'{server_port}', 'new', twin,
-         f'{ip}:{port}', f'{rel}'], stdout=None, stderr=None)
+         f'{ip}:{port}', f'{rel}'],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     with host_lock:
         hosted_servers += 1
         host_changes += 1
@@ -352,21 +352,18 @@ if __name__ == '__main__':
     # Client
     p2p_node = p2p.init_p2p(private_event)
     uri = 'http://127.0.0.1:5000'
-    if len(sys.argv) > 1:
-        uri = sys.argv[1]
     try:
-        print(f'Server URI: {uri}')
-        print(f'Personal P2P address: {p2p_node.host}:{p2p_node.port}\n')
+        print(f'Client URI: {p2p_node.host}:{p2p_node.port}\n')
 
         # Connect to chat server
         relay_client.connect(uri)
         while not connected:
             if not connected and not connecting:
-                print('Trying to connect to server...')
+                print('Trying to connect to chat server...')
                 relay_client.emit(
                     'connect_to_chat', [p2p_node.host, p2p_node.port])
                 connecting = True
-        print('Successfully connected to server!')
+        print('Successfully connected to chat server!')
 
         # Enter chat room
         user_login()
