@@ -26,8 +26,8 @@ En el siguiente documento detallaremos el proceso de desarrollo de la aplicació
 
 | Versión (Entrega)   | 3    |
 | ------------------- | ---- |
-| Épica               | -    |
-| Estado de Documento | -    |
+| Épica               | Replicación y consistencia de 2 servidores |
+| Estado de Documento | Borrador |
 
 | Versión (Entrega)   | 4    |
 | ------------------- | ---- |
@@ -48,6 +48,7 @@ Se presentan los requerimientos del sistema solicitado mediante *user stories*:
 | <a name="req6">6</a> | Ver los mensajes privados     | Un usuario puede ver los mensajes privados enviados por otro usuario | Media     |                                                              |
 
 **(Tarea 2)** Los requisitos no cambian, ya que el proceso de migración debe ser transparente para el usuario.
+**(Tarea 3)** Los requisitos no cambian, ya que el proceso de migración y replicación debe ser transparente para el usuario.
 
 ## Arquitectura
 
@@ -57,10 +58,10 @@ Como equipo decidimos utilizar la arquitectura **cliente-servidor** con estructu
 
 ### *Environment*
 
-El servidor y la comunicación con este se realizó utilizando el lenguaje [**Python 3**](https://docs.python.org/3.7/), sobre la librería [**Flask**](https://flask.palletsprojects.com/en/2.0.x/). Mientras que para la comunicación privada entre clientes utilizamos la librería [**p2pnetwork**](https://github.com/macsnoeren/python-p2p-network).
+El servidor y la comunicación con este se realizó utilizando el lenguaje [**Python 3**](https://docs.python.org/3.8/), sobre la librería [**Flask**](https://flask.palletsprojects.com/en/2.0.x/). Mientras que para la comunicación privada entre clientes utilizamos la librería [**p2pnetwork**](https://github.com/macsnoeren/python-p2p-network).
 
-- Recomendamos usar **virtualenv** con Python 3.7+.
-- Las librerías requeridas se encuentran dentro del archivo ``requirements.txt``.
+- Recomendamos usar **virtualenv** con Python 3.8+.
+- Las librerías requeridas se encuentran dentro del archivo ``requirements.txt`` (ya no es necesario tenerlas).
 
 ### *Deployment*
 
@@ -203,6 +204,10 @@ Donde `URI` corresponde a la URI en la que se encuentra el servidor, en nuestro 
 ![Diagrama del protocolo de migración](https://i.imgur.com/9faygIn.png)
 
 Puede observar el comportamiento de los procesos utilizando la herramienta disponible en su sistema operativo (Administrador de Tareas).
+
+## Protocolo de Replicación/Tolerancia a Errores
+
+(pendiente)
 
 ## Dev Notes
 
