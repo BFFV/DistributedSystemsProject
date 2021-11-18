@@ -5,7 +5,7 @@ from time import sleep
 
 # Migrator thread
 class Migrator:
-    def __init__(self, server, interval=30):
+    def __init__(self, server, interval=10):  # TODO: set to 30
         self.server = server
         self.interval = interval
         self.timer = Thread(target=self.run, daemon=True)
@@ -19,17 +19,13 @@ class Migrator:
             self.wait_interval()
             while not self.server.can_migrate:
                 sleep(0.5)
-            while self.server.emergency:
-                sleep(0.5)
-            self.server.attempting = True
             self.print('Attempting to migrate...')
             chosen = self.server.find_future_server()
-            if not chosen and not self.server.emergency:
+            if not chosen:
                 addr = f'http://{self.server.ip}:{self.server.port}'
                 self.server.twin_client.emit('twin', addr)
                 self.server.can_migrate = False
-                self.server.attempting = False
-            elif not self.server.emergency:
+            else:
                 waiting = False
 
         # Create new server from client

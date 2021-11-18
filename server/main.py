@@ -104,7 +104,7 @@ def connect(data):
     migration_lock.release()
 
 
-# Migrate back to relay server
+# TODO: Backup server for keeping clients connected until a server is started
 @socketio.on('create_server')
 def create_server(data):
     server_port = get_free_port()
@@ -117,7 +117,7 @@ def create_server(data):
 
     # NOTE: Change stdout from "subprocess.DEVNULL" to "None" for debugging
     subprocess.Popen(['python3', f'{c_dir}/chat_server.py',
-                      f'-{n_clients}', f'{server_port}', 'new_relay', twin_data,
+                      f'-{n_clients}', f'{server_port}', 'backup', twin_data,
                       f'{ip}:{port}', f'{rel}'],
                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
@@ -140,14 +140,14 @@ if __name__ == '__main__':
     for n in range(2):
         chat_server_port = get_free_port()
 
-        # NOTE: Change stdout from 'subprocess.DEVNULL' to 'None' for debugging
+        # TODO: NOTE: Change stdout from 'subprocess.DEVNULL' to 'None' for debugging
         twin = ''
         if n:
             twin = f'http://{SERVER[0][0]}:{SERVER[0][1]}'
         subprocess.Popen(['python3', f'{current_dir}/chat_server.py',
                           f'-{N_CLIENTS_REQUIRED}',
                           f'{chat_server_port}', 'original', twin],
-                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                         stdout=None, stderr=None)
         SERVER.append([server_ip, chat_server_port])
     show_server_locations()
 

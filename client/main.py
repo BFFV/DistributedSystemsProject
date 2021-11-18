@@ -40,28 +40,10 @@ ask_input = f'{54 * "-"}\nSpecial Commands:{36 * " "}|\n{53 * " "}|\n' \
 private_ready = True  # Protect current private message until p2p is ready
 private_msg = ''  # Current private message
 
-# Chat server hosting
-host_lock = Lock()
-host_changes = 0
-hosted_servers = 0
-hosting = False
-disconnecting = False
 
-
-# SIGINT handler
+# SIGINT handler (bypass & graceful disconnect)
 def safe_close(sig, frame):
-    global disconnecting
-    disconnecting = True
-    while True:
-        with host_lock:
-            current_changes = host_changes
-            if not hosted_servers:
-                break
-            elif hosted_servers == 1:
-                with sio_lock:
-                    sio.emit('emergency')
-        while host_changes == current_changes:
-            pass
+    pass
 
 
 signal(SIGINT, safe_close)
@@ -274,7 +256,6 @@ def connect_to_chat(data):
 @sio_a.on('create_server')
 @sio_b.on('create_server')
 def create_server(data):
-    global host_changes, hosted_servers
     server_port = p2p.get_free_port()
     current_dir = os.path.dirname(os.path.realpath(__file__))
     n_clients = data['n_clients']
@@ -285,21 +266,18 @@ def create_server(data):
     if debug:
         print('Creating new server...\n')
 
-    # NOTE: Change stdout from "subprocess.DEVNULL" to "None" for debugging
+    # TODO: NOTE: Change stdout from "subprocess.DEVNULL" to "None" for debugging
     subprocess.Popen(
         ['python3', f'{current_dir}/../server/chat_server.py',
          f'-{n_clients}', f'{server_port}', 'new', twin,
          f'{ip}:{port}', f'{rel}'],
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    with host_lock:
-        hosted_servers += 1
-        host_changes += 1
+        stdout=None, stderr=None)
 
 
 @sio_a.on('reconnect')
 @sio_b.on('reconnect')
 def reconnect(new_server):
-    global sio, current_sio, accepted, hosted_servers, host_changes, hosting
+    global sio, current_sio, accepted
     sio_lock.acquire()
     sio.disconnect()
     if not current_sio:
@@ -314,34 +292,13 @@ def reconnect(new_server):
         sio.connect(new_server)
         if accepted:
             sio.emit('login', {
-                'ip': p2p_node.host, 'port': p2p_node.port,
-                'id': p2p_node.id, 'valid': not disconnecting,
+                'ip': p2p_node.host, 'port': p2p_node.port, 'id': p2p_node.id,
             })
         if debug:
             print('Switched successfully!\n')
     except exc.ConnectionError:
         accepted = False
     sio_lock.release()
-    with host_lock:
-        if hosted_servers:
-            if hosting:
-                hosted_servers -= 1
-                host_changes += 1
-                if not hosted_servers:
-                    hosting = False
-            else:
-                hosting = True
-
-
-# Client exit on SIGINT
-@sio_a.on('finished')
-@sio_b.on('finished')
-def force_exit():
-    global hosted_servers, hosting, host_changes
-    with host_lock:
-        hosted_servers = 0
-        host_changes += 1
-        hosting = False
 
 
 # Run client
