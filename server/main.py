@@ -27,6 +27,7 @@ CURRENT_SERVER = 0
 migration_lock = Lock()
 
 # Control state for chat servers
+active_servers = 2
 master_client = socketio_client.Client()
 ask_input = f'{54 * "-"}\nComandos:{44 * " "}|\n{53 * " "}|\n' \
             f'"APAGAR -N" -> apaga el servidor número N' \
@@ -49,7 +50,10 @@ def notify_input_error():
 def show_server_locations():
     print('\n**Current Chat Servers**\n')
     for idx, s in enumerate(SERVER):
-        print(f'Chat Server {idx + 1}: {s[0]}:{s[1]} (ACTIVE)')
+        if not s:
+            print(f'Chat Server {idx + 1}: INACTIVE')
+        else:
+            print(f'Chat Server {idx + 1}: {s[0]}:{s[1]} (ACTIVE)')
     print()
     print(ask_input)
 
@@ -68,7 +72,7 @@ def get_ip_diff(ip1, ip2) -> int:
 def get_closest_server(client, servers):
     closest = float('inf')
     best_server = []
-    for s in servers:
+    for s in [sv for sv in servers if sv]:
         distance = get_ip_diff(client[0], s[0])
         if distance < closest:
             best_server = s
@@ -76,7 +80,9 @@ def get_closest_server(client, servers):
         elif (distance == closest) and (s[1] < best_server[1]):
             best_server = s
             closest = distance
-    return best_server
+    if best_server:
+        return best_server
+    return False
 
 
 # Debug replication servers
@@ -103,7 +109,7 @@ def check_input(command):
         if state == 'APAGAR':
             if not SERVER[server_n - 1]:
                 return False, ''
-            return SERVER[server_n - 1], 'off'
+            return server_n, 'off'
         if state == 'PRENDER':
             if SERVER[server_n - 1]:
                 return False, ''
@@ -114,25 +120,40 @@ def check_input(command):
 
 # TODO: Manage state of chat servers
 def manage_state():
+    global active_servers, SERVER
     try:
         while True:
             user_input = input()
-            s, op = check_input(user_input)
-            if s:
+            s_n, op = check_input(user_input)
+            if s_n:
                 if op == 'off':
-                    # TODO: shut down server s
+                    s = SERVER[s_n - 1]
                     master_client.connect(f'http://{s[0]}:{s[1]}')
-                    master_client.emit('shutdown')
+                    shutdown_type = 'twin'
+                    if active_servers < 2:
+                        shutdown_type = 'backup'
+                    master_client.emit('shutdown', shutdown_type)
                     master_client.disconnect()
+                    SERVER[s_n - 1] = None
+                    active_servers -= 1
                 else:
-                    print(f'start server {s}')
+                    print(f'start server {s_n}')
                     # TODO: start server s
-                    pass
+                    # call start server
+                    active_servers += 1
+                show_server_locations()
             else:
                 print('Comando Inválido!!!\n')
             print(ask_input)
     except EOFError:
         pass
+
+
+# TODO: Start chat server
+def start_server():
+    # Check if both are down or just one
+    # Spawn new server of type new_rel, make sure it syncs with twin
+    pass
 
 
 # ************************** Socket Events **************************
@@ -144,7 +165,7 @@ def register(data):
     migration_lock.acquire()
     current_server = 0
     for idx, s in enumerate(SERVER):
-        if (s[0] == data['old'][0]) and (s[1] == int(data['old'][1])):
+        if s and (s[0] == data['old'][0]) and (s[1] == int(data['old'][1])):
             current_server = idx
     SERVER[current_server] = [data['new'][0], int(data['new'][1])]
     show_server_locations()
@@ -157,6 +178,7 @@ def connect(data):
     migration_lock.acquire()
     # NOTE: Use get_different_server for debugging replication
     chosen_server = get_closest_server(data, SERVER)
+    # TODO: check when both servers are down
     socketio.emit('connect_to_chat', chosen_server, room=request.sid)
     migration_lock.release()
 

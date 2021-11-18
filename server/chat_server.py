@@ -314,8 +314,31 @@ def replicate_disconnection(username):
 
 # TODO: Shut down server
 @socketio.on('shutdown')
-def shutdown():
-    print('Shutdown............................')
+def shutdown(data):
+    sv.shutdown = True
+    if data == 'twin':
+        users_info = {f'{x.ip}:{x.port}': x.username for x in sv.users.values()}
+        sv.twin_client.emit('twin_off', users_info)
+        sleep(1)
+        sv.sio.emit('reconnect', sv.twin_uri)
+        sv.twin_client.disconnect()
+        sleep(2)
+        sv.sio.stop()
+        return
+    # TODO: both servers down, move to relay
+    return
+
+
+# TODO: receive twin data before twin shutdown
+@socketio.on('twin_off')
+def receive_twin_data(data):
+    for location, username in data.items():
+        sv.old_users[location] = username
+    sv.rep_users = dict()
+    sv.n_clients = len(sv.users)
+    sv.twin_client.disconnect()
+    sv.twin_uri = ''
+    sv.can_migrate = True
 
 
 # TODO: delete
@@ -388,9 +411,11 @@ if __name__ == '__main__':
 
     # Twin servers
     try:
-        if sv.twin_uri:  # True for every server except the first one
+        if sv.twin_uri:
             sv.twin_client.connect(sv.twin_uri)
             sv.twin_client.emit('twin', f'http://{sv.ip}:{sv.port}')
+        else:
+            sv.can_migrate = True
     except (exc.ConnectionError, exc.BadNamespaceError):
         pass
 

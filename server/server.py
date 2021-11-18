@@ -34,6 +34,7 @@ class Server:
         if server_type == 'original':
             self.migrator.timer.start()
         self.can_migrate = False
+        self.shutdown = False
 
         # Connection data
         self.ip = ip

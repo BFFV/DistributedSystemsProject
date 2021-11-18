@@ -19,13 +19,16 @@ class Migrator:
             self.wait_interval()
             while not self.server.can_migrate:
                 sleep(0.5)
+            while self.server.shutdown:
+                sleep(0.5)
             self.print('Attempting to migrate...')
             chosen = self.server.find_future_server()
-            if not chosen:
+            if not chosen and not self.server.shutdown:
                 addr = f'http://{self.server.ip}:{self.server.port}'
-                self.server.twin_client.emit('twin', addr)
-                self.server.can_migrate = False
-            else:
+                if self.server.twin_uri:
+                    self.server.twin_client.emit('twin', addr)
+                    self.server.can_migrate = False
+            elif not self.server.shutdown:
                 waiting = False
 
         # Create new server from client
