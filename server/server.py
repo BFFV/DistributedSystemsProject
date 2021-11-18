@@ -17,7 +17,6 @@ class Server:
         self.users = dict()  # Key: socket ID, Value: User object
         self.rep_users = dict()  # Key: rep_username, Value: User object
         self.old_users = dict()  # Key: "ip:port", Value: username
-        self.invalid_users = set()  # Users that are leaving
 
         # Usernames set (for quickly checking existence)
         self.usernames = set()
@@ -35,9 +34,6 @@ class Server:
         if server_type == 'original':
             self.migrator.timer.start()
         self.can_migrate = False
-        self.attempting = False
-        self.emergency = False
-        self.skip = ''
 
         # Connection data
         self.ip = ip
@@ -92,17 +88,14 @@ class Server:
 
     # Choose new client to migrate the server
     def find_future_server(self):
-        valid_clients = [u for u in self.users.keys()
-                         if self.users[u].username not in self.invalid_users]
-        if not valid_clients:
+        clients = list(self.users.keys())
+        if not clients:
             return False
-        return choice(valid_clients)
+        return choice(clients)
 
-    # Choose new client to migrate the server on SIGINT
+    # TODO: Maybe delete
     def find_emergency_server(self, sid):
-        valid_clients = [u for u in self.users.keys()
-                         if self.users[u].username not in self.invalid_users]
-        different_clients = [u for u in valid_clients if u != sid]
+        different_clients = [u for u in self.users.keys() if u != sid]
         if not different_clients:
             return False
         return choice(different_clients)
