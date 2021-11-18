@@ -5,12 +5,13 @@ import_fixer.fix_imports()
 import sys
 import os
 import logging
+import socketio as socketio_client
 import subprocess
 from flask import Flask, request
 from flask_socketio import SocketIO
 from functools import reduce
 from server import get_local_ip, get_free_port
-from threading import Lock
+from threading import Lock, Thread
 
 
 # Relay server
@@ -25,6 +26,16 @@ SERVER = []
 CURRENT_SERVER = 0
 migration_lock = Lock()
 
+# Control state for chat servers
+master_client = socketio_client.Client()
+ask_input = f'{54 * "-"}\nComandos:{44 * " "}|\n{53 * " "}|\n' \
+            f'"APAGAR -N" -> apaga el servidor número N' \
+            f'{12 * " "}|\n' \
+            f'"PRENDER -N" -> prende el servidor número N' \
+            f'{10 * " "}|\n' \
+            f'{54 * "-"}\n\n' \
+            f'Escribir Comando:\n'
+
 
 # Input error handling
 def notify_input_error():
@@ -37,9 +48,10 @@ def notify_input_error():
 # Show current chat servers
 def show_server_locations():
     print('\n**Current Chat Servers**\n')
-    for s in SERVER:
-        print(f'Chat: {s[0]}:{s[1]}')
+    for idx, s in enumerate(SERVER):
+        print(f'Chat Server {idx + 1}: {s[0]}:{s[1]} (ACTIVE)')
     print()
+    print(ask_input)
 
 
 # Get numeric value from IP
@@ -76,6 +88,51 @@ def get_different_server(client, servers):
     else:
         CURRENT_SERVER = 1
     return servers[chosen]
+
+
+# Check manager input
+def check_input(command):
+    try:
+        c = command.strip('\n').split()
+        if len(c) != 2:
+            return False, ''
+        state = c[0]
+        server_n = abs(int(c[1][1:]))
+        if state not in ('APAGAR', 'PRENDER') or server_n not in range(1, 3):
+            return False, ''
+        if state == 'APAGAR':
+            if not SERVER[server_n - 1]:
+                return False, ''
+            return SERVER[server_n - 1], 'off'
+        if state == 'PRENDER':
+            if SERVER[server_n - 1]:
+                return False, ''
+            return server_n, 'on'
+    except ValueError:
+        return False, ''
+
+
+# TODO: Manage state of chat servers
+def manage_state():
+    try:
+        while True:
+            user_input = input()
+            s, op = check_input(user_input)
+            if s:
+                if op == 'off':
+                    # TODO: shut down server s
+                    master_client.connect(f'http://{s[0]}:{s[1]}')
+                    master_client.emit('shutdown')
+                    master_client.disconnect()
+                else:
+                    print(f'start server {s}')
+                    # TODO: start server s
+                    pass
+            else:
+                print('Comando Inválido!!!\n')
+            print(ask_input)
+    except EOFError:
+        pass
 
 
 # ************************** Socket Events **************************
@@ -154,6 +211,8 @@ if __name__ == '__main__':
     # Run
     print(f'Relay Server URI: http://{server_ip}:{relay_server_port}')
     print(f'Chat Servers initialized (N = {N_CLIENTS_REQUIRED})')
+    controller = Thread(target=manage_state, daemon=True)
+    controller.start()
     try:
         socketio.run(app, host='0.0.0.0', port=relay_server_port)
     except KeyboardInterrupt:

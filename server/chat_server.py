@@ -312,6 +312,12 @@ def replicate_disconnection(username):
     sv.messages_lock.release()
 
 
+# TODO: Shut down server
+@socketio.on('shutdown')
+def shutdown():
+    print('Shutdown............................')
+
+
 # TODO: delete
 """
 # Emergency migration on SIGINT
