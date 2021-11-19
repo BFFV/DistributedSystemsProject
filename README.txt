@@ -49,7 +49,8 @@ chat anteriores ya no sean necesarias, por lo que simplemente se eliminan tras t
 
 La distancia a los servidores se determina comparando sus IP a través de máscaras, y en caso de tener la misma IP se desempata con la que tenga el menor puerto.
 
-El sistema es tolerante a fallas del lado del servidor, ya que al apagar uno de los servidores se aprovecha la existencia del otro servidor (replicado) para mantener el servicio funcional. Además, si ambos servidores se apagan, los clientes seguirán conectados (sin poder hacer nada), y cuando se vuelva a prender cualquier servidor se resumirá la disponibilidad del chat.
+El sistema es tolerante a fallas del lado del servidor, ya que al apagar uno de los servidores se aprovecha la existencia del otro servidor (replicado) para mantener el servicio funcional.
+Además, si ambos servidores se apagan, los clientes seguirán conectados (sin poder hacer nada), y cuando se vuelva a prender cualquier servidor se resumirá la disponibilidad del chat.
 
 * Consideraciones
 
