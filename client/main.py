@@ -21,6 +21,7 @@ relay_client = socketio.Client(handle_sigint=False)
 connected = False
 connecting = False
 accepted = False
+unavailable = False
 sio_lock = Lock()
 
 # Users
@@ -39,6 +40,9 @@ ask_input = f'{54 * "-"}\nSpecial Commands:{36 * " "}|\n{53 * " "}|\n' \
 # Private message
 private_ready = True  # Protect current private message until p2p is ready
 private_msg = ''  # Current private message
+
+# Debug (NOTE: Change stdout from "subprocess.DEVNULL" to "None" for debugging)
+debug_mode = subprocess.DEVNULL
 
 
 # SIGINT handler (bypass & graceful disconnect)
@@ -237,7 +241,12 @@ def private_event(event, this, other, data):
 # Connect to real server
 @relay_client.on('connect_to_chat')
 def connect_to_chat(data):
-    global connected, connecting
+    global connected, connecting, unavailable
+    if not data:
+        connected = True
+        connecting = False
+        unavailable = True
+        return
     if debug:
         print(f'\nConnecting to server: http://{data[0]}:{data[1]}\n')
     try:
@@ -265,13 +274,11 @@ def create_server(data):
     twin = data['twin']
     if debug:
         print('Creating new server...\n')
-
-    # TODO: NOTE: Change stdout from "subprocess.DEVNULL" to "None" for debugging
     subprocess.Popen(
         ['python3', f'{current_dir}/../server/chat_server.py',
          f'-{n_clients}', f'{server_port}', 'new', twin,
          f'{ip}:{port}', f'{rel}'],
-        stdout=None, stderr=None)
+        stdout=debug_mode, stderr=debug_mode)
 
 
 @sio_a.on('reconnect')
@@ -320,6 +327,8 @@ if __name__ == '__main__':
                 relay_client.emit(
                     'connect_to_chat', [p2p_node.host, p2p_node.port])
                 connecting = True
+        if unavailable:
+            raise exc.ConnectionError
         print('Successfully connected to chat server!')
 
         # Enter chat room

@@ -31,8 +31,8 @@ En el siguiente documento detallaremos el proceso de desarrollo de la aplicació
 
 | Versión (Entrega)   | 4    |
 | ------------------- | ---- |
-| Épica               | -    |
-| Estado de Documento | -    |
+| Épica               | Tolerancia a fallas    |
+| Estado de Documento | Borrador    |
 
 ## Requerimientos
 
@@ -48,7 +48,10 @@ Se presentan los requerimientos del sistema solicitado mediante *user stories*:
 | <a name="req6">6</a> | Ver los mensajes privados     | Un usuario puede ver los mensajes privados enviados por otro usuario | Media     |                                                              |
 
 **(Tarea 2)** Los requisitos no cambian, ya que el proceso de migración debe ser transparente para el usuario.
+
 **(Tarea 3)** Los requisitos no cambian, ya que el proceso de migración y replicación debe ser transparente para el usuario.
+
+**(Tarea 4)** Los requisitos no cambian, ya que es el mismo sistema anterior pero tolerante a fallas.
 
 ## Arquitectura
 
@@ -174,7 +177,7 @@ Puede observar el comportamiento de los procesos utilizando la herramienta dispo
 
 ## Protocolo de Replicación/Tolerancia a Errores
 
-(pendiente)
+Explicado en el [**README**](README.txt).
 
 ## Dev Notes
 

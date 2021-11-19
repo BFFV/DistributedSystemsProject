@@ -104,6 +104,10 @@ def command_handler(msg):
 # Listen for messages
 @socketio.on('message')
 def handle_message(data):
+    # Service not available
+    if sv.server_type == 'backup':
+        return
+
     # Parse message
     if not command_handler(data):
         # Normal message: "USERNAME: MESSAGE"
@@ -114,7 +118,8 @@ def handle_message(data):
 
         # Replicate message
         try:
-            sv.twin_client.emit('rep_message', message)
+            if sv.twin_uri:
+                sv.twin_client.emit('rep_message', message)
         except exc.BadNamespaceError:
             pass
 
@@ -131,10 +136,6 @@ def handle_login(data):
     if c_data in sv.old_users:
         user = sv.old_users[c_data]
         sv.build_user(user, request.sid, data['ip'], data['port'], data['id'])
-        if sv.n_clients == sv.N_CLIENTS_REQUIRED:
-            print('Chat is now active!')
-            broadcast_past_messages()
-            sv.N_CLIENTS_REQUIRED = -1  # Chat is permanent from now on
         return
 
     # Check new users
@@ -149,7 +150,8 @@ def handle_login(data):
     if user not in sv.usernames:
         # Replicate new user
         try:
-            sv.twin_client.emit('rep_new_user', data)
+            if sv.twin_uri:
+                sv.twin_client.emit('rep_new_user', data)
         except exc.BadNamespaceError:
             pass
 
@@ -185,21 +187,24 @@ def disconnect():
 
         # Replicate disconnection
         try:
-            sv.twin_client.emit('rep_disconnect', username)
+            if sv.twin_uri:
+                sv.twin_client.emit('rep_disconnect', username)
         except exc.BadNamespaceError:
             pass
 
         # Remove user
         sv.n_clients -= 1
         sv.usernames.remove(username)
-        socketio.emit(
-            'users', sv.n_clients, broadcast=True, include_self=False)
         msg = f'{username} has left the chat!'
-        if sv.n_clients > sv.N_CLIENTS_REQUIRED:
-            socketio.emit('response', msg)
         sv.messages_lock.acquire()
         sv.messages.append(msg)
         sv.messages_lock.release()
+        if sv.server_type == 'backup':
+            return
+        socketio.emit(
+            'users', sv.n_clients, broadcast=True, include_self=False)
+        if sv.n_clients > sv.N_CLIENTS_REQUIRED:
+            socketio.emit('response', msg)
 
 
 # Migrate to new server
@@ -312,51 +317,111 @@ def replicate_disconnection(username):
     sv.messages_lock.release()
 
 
-# TODO: delete
-"""
-# Emergency migration on SIGINT
-@socketio.on('emergency')
-def emergency():
-    # Already migrating
-    if sv.attempting:
+# Shut down server
+@socketio.on('shutdown')
+def shutdown(data):
+    sv.shutdown = True
+    sv.can_migrate = False
+
+    # Move clients to twin
+    if data == 'twin':
+        users_info = {f'{x.ip}:{x.port}': x.username for x in sv.users.values()}
+        sv.twin_client.emit('twin_off', users_info)
+        sleep(1)
+        sv.sio.emit('reconnect', sv.twin_uri)
+        sv.twin_client.disconnect()
+        sleep(2)
+        sv.sio.stop()
         return
 
-    # Emergency migration
-    sv.emergency = True
-
-    # Disconnect host client
-    disconnect()
-    sv.sio.emit('finished', room=request.sid)
-    sv.skip = request.sid
-
-    # Wait for twin to be ready
-    while not sv.can_migrate:
-        sleep(0.5)
-
-    # Execute migration
-    data = {'n_clients': sv.N_CLIENTS_REQUIRED,
-            'ip': sv.ip, 'port': sv.port,
-            'relay': sv.relay, 'twin': sv.twin_uri}
-    chosen = sv.find_emergency_server(request.sid)
-
-    # Migrate to new client
-    if chosen:
-        sv.sio.emit('create_server', data, room=chosen)
-        return
-
-    # Migrate to relay
+    # Move clients to relay until new servers start
     try:
-        sv.relay_client.emit('create_server', data)
-        return
-    except exc.BadNamespaceError:
+        if sv.server_type in ('original', 'new_twin'):
+            sv.relay_client.connect(sv.relay)
+        sv.relay_client.emit('create_server', f'http://{sv.ip}:{sv.port}')
+    except (exc.ConnectionError, exc.BadNamespaceError):
         pass
 
-    # Exit
-    sv.relay_client.disconnect()
+
+# Receive twin data before twin shutdown
+@socketio.on('twin_off')
+def receive_twin_data(data):
+    for location, username in data.items():
+        sv.old_users[location] = username
+    sv.rep_users = dict()
+    sv.n_clients = len(sv.users)
     sv.twin_client.disconnect()
-    sleep(2)
+    sv.twin_uri = ''
+    sv.can_migrate = True
+
+
+# Sync with new twin
+@socketio.on('sync')
+def sync_twin(data):
+    # Already migrating
+    if sv.attempting:
+        sv.twin_uri = data
+        return
+
+    # Sync with twin
+    sv.can_migrate = False
+    sv.twin_uri = data
+    sv.twin_client.connect(sv.twin_uri)
+    rep_users = dict()
+    for user in sv.users.values():
+        rep_users[user.username] = user.get_connections()
+    rep_data = {'messages': sv.messages,
+                'rep_users': rep_users,
+                'twin': f'http://{sv.ip}:{sv.port}',
+                'n_clients': sv.N_CLIENTS_REQUIRED}
+    sv.twin_client.emit('twin_start', rep_data)
+
+
+# Initialize new twin
+@socketio.on('twin_start')
+def initialize_twin(data):
+    sv.messages_lock.acquire()
+    sv.messages = data['messages']
+    sv.messages_lock.release()
+    sv.rep_users = data['rep_users']
+    sv.usernames = set(sv.rep_users.keys())
+    sv.N_CLIENTS_REQUIRED = data['n_clients']
+    sv.n_clients = len(sv.rep_users)
+    sv.twin_uri = data['twin']
+    try:
+        sv.twin_client.connect(sv.twin_uri)
+        sv.can_migrate = True
+    except exc.ConnectionError:
+        pass
+
+
+# Backup data before and then shutdown
+@socketio.on('backup_ready')
+def backup_ready(data):
+    users_info = {f'{x.ip}:{x.port}': x.username for x in sv.users.values()}
+    backup_data = {'messages': sv.messages,
+                   'users': users_info,
+                   'n_clients': sv.N_CLIENTS_REQUIRED}
+    try:
+        sv.twin_client.connect(data)
+        sv.twin_client.emit('backup', backup_data)
+        sleep(1)
+    except (exc.ConnectionError, exc.BadNamespaceError):
+        pass
+    sv.twin_client.disconnect()
+    sv.sio.emit('reconnect', data)
     sv.sio.stop()
-"""
+
+
+# Prepare backup server
+@socketio.on('backup')
+def backup(data):
+    for location, username in data['users'].items():
+        sv.old_users[location] = username
+    sv.rep_users = dict()
+    sv.n_clients = 0
+    sv.messages = data['messages']
+    sv.N_CLIENTS_REQUIRED = data['n_clients']
 
 # *******************************************************************
 
@@ -367,7 +432,7 @@ if __name__ == '__main__':
     server_port = sys.argv[2]
     server_type = sys.argv[3]
     local_ip = get_local_ip()
-    if server_type == 'original':
+    if server_type in ('original', 'new_twin', 'backup'):
         relay = f'http://{local_ip}:{5000}'
     else:
         relay = sys.argv[6]
@@ -382,14 +447,16 @@ if __name__ == '__main__':
 
     # Twin servers
     try:
-        if sv.twin_uri:  # True for every server except the first one
+        if sv.twin_uri:
             sv.twin_client.connect(sv.twin_uri)
             sv.twin_client.emit('twin', f'http://{sv.ip}:{sv.port}')
+        elif sv.server_type not in ('new_twin', 'backup'):
+            sv.can_migrate = True
     except (exc.ConnectionError, exc.BadNamespaceError):
         pass
 
     # New server setup
-    if server_type != 'original':
+    if server_type not in ('original', 'new_twin', 'backup'):
         try:
             sv.relay_client.connect(sv.relay)
         except exc.ConnectionError:
