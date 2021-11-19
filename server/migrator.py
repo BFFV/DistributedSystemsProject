@@ -5,7 +5,7 @@ from time import sleep
 
 # Migrator thread
 class Migrator:
-    def __init__(self, server, interval=10):  # TODO: set to 30
+    def __init__(self, server, interval=30):
         self.server = server
         self.interval = interval
         self.timer = Thread(target=self.run, daemon=True)

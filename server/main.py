@@ -38,8 +38,8 @@ ask_input = f'{54 * "-"}\nComandos:{44 * " "}|\n{53 * " "}|\n' \
             f'Escribir Comando:\n'
 backup_server_uri = ''
 
-# TODO: Debug (NOTE: Change stdout from "subprocess.DEVNULL" to "None" for debugging)
-debug_mode = None
+# Debug (NOTE: Change stdout from "subprocess.DEVNULL" to "None" for debugging)
+debug_mode = subprocess.DEVNULL
 
 
 # Input error handling
@@ -205,7 +205,6 @@ def connect(data):
     migration_lock.acquire()
     # NOTE: Use get_different_server for debugging replication
     chosen_server = get_closest_server(data, SERVER)
-    # TODO: check when both servers are down
     socketio.emit('connect_to_chat', chosen_server, room=request.sid)
     migration_lock.release()
 
