@@ -95,7 +95,7 @@ class Server:
             return False
         return choice(clients)
 
-    # TODO: Maybe delete
+    # Find different client to migrate (not in use)
     def find_emergency_server(self, sid):
         different_clients = [u for u in self.users.keys() if u != sid]
         if not different_clients:

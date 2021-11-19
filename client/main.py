@@ -40,6 +40,9 @@ ask_input = f'{54 * "-"}\nSpecial Commands:{36 * " "}|\n{53 * " "}|\n' \
 private_ready = True  # Protect current private message until p2p is ready
 private_msg = ''  # Current private message
 
+# TODO: Debug (NOTE: Change stdout from "subprocess.DEVNULL" to "None" for debugging)
+debug_mode = None
+
 
 # SIGINT handler (bypass & graceful disconnect)
 def safe_close(sig, frame):
@@ -265,13 +268,11 @@ def create_server(data):
     twin = data['twin']
     if debug:
         print('Creating new server...\n')
-
-    # TODO: NOTE: Change stdout from "subprocess.DEVNULL" to "None" for debugging
     subprocess.Popen(
         ['python3', f'{current_dir}/../server/chat_server.py',
          f'-{n_clients}', f'{server_port}', 'new', twin,
          f'{ip}:{port}', f'{rel}'],
-        stdout=None, stderr=None)
+        stdout=debug_mode, stderr=debug_mode)
 
 
 @sio_a.on('reconnect')

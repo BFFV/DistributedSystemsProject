@@ -36,6 +36,10 @@ ask_input = f'{54 * "-"}\nComandos:{44 * " "}|\n{53 * " "}|\n' \
             f'{10 * " "}|\n' \
             f'{54 * "-"}\n\n' \
             f'Escribir Comando:\n'
+backup_server_uri = ''
+
+# TODO: Debug (NOTE: Change stdout from "subprocess.DEVNULL" to "None" for debugging)
+debug_mode = None
 
 
 # Input error handling
@@ -149,20 +153,20 @@ def manage_state():
 
 # Start chat server
 def start_server(n_servers, server_idx):
+    server_port = get_free_port()
+    c_dir = os.path.dirname(os.path.realpath(__file__))
+    n_clients = N_CLIENTS_REQUIRED
+    twin_data = ''
+    server_type = 'original'
+    if n_servers:
+        server_type = 'new_twin'
+    subprocess.Popen(['python3', f'{c_dir}/chat_server.py',
+                      f'-{n_clients}', f'{server_port}', server_type,
+                      twin_data],
+                     stdout=debug_mode, stderr=debug_mode)
+    SERVER[server_idx] = [get_local_ip(), server_port]
+    new_server = SERVER[server_idx]
     if n_servers:  # Sync with current twin
-        server_port = get_free_port()
-        c_dir = os.path.dirname(os.path.realpath(__file__))
-        n_clients = N_CLIENTS_REQUIRED
-        twin_data = ''
-
-        # TODO: NOTE: Change stdout from "subprocess.DEVNULL" to "None" for debugging
-        subprocess.Popen(['python3', f'{c_dir}/chat_server.py',
-                          f'-{n_clients}', f'{server_port}', 'new_twin',
-                          twin_data],
-                         stdout=None, stderr=None)
-
-        SERVER[server_idx] = [get_local_ip(), server_port]
-        new_server = SERVER[server_idx]
         current_idx = 0
         if not server_idx:
             current_idx = 1
@@ -171,8 +175,12 @@ def start_server(n_servers, server_idx):
         master_client.emit('sync', f'http://{new_server[0]}:{new_server[1]}')
         master_client.disconnect()
         return
-    # TODO: spawn first server with all data
-    return
+
+    # Restore from backup server
+    master_client.connect(backup_server_uri)
+    master_client.emit('backup_ready',
+                       f'http://{new_server[0]}:{new_server[1]}')
+    master_client.disconnect()
 
 
 # ************************** Socket Events **************************
@@ -205,21 +213,19 @@ def connect(data):
 # Backup server for keeping clients connected until a server is started
 @socketio.on('create_server')
 def create_server(data):
+    global backup_server_uri
     server_port = get_free_port()
     c_dir = os.path.dirname(os.path.realpath(__file__))
     n_clients = N_CLIENTS_REQUIRED
     twin_data = ''
-
-    # TODO: NOTE: Change stdout from "subprocess.DEVNULL" to "None" for debugging
     subprocess.Popen(['python3', f'{c_dir}/chat_server.py',
                       f'-{n_clients}', f'{server_port}', 'backup',
                       twin_data],
-                     stdout=None, stderr=None)
-
+                     stdout=debug_mode, stderr=debug_mode)
+    backup_server_uri = f'http://{get_local_ip()}:{server_port}'
     master_client.connect(data)
     master_client.emit('backup_ready', f'http://{get_local_ip()}:{server_port}')
     master_client.disconnect()
-
 
 # *******************************************************************
 
@@ -239,15 +245,13 @@ if __name__ == '__main__':
     current_dir = os.path.dirname(os.path.realpath(__file__))
     for n in range(2):
         chat_server_port = get_free_port()
-
-        # TODO: NOTE: Change stdout from 'subprocess.DEVNULL' to 'None' for debugging
         twin = ''
         if n:
             twin = f'http://{SERVER[0][0]}:{SERVER[0][1]}'
         subprocess.Popen(['python3', f'{current_dir}/chat_server.py',
                           f'-{N_CLIENTS_REQUIRED}',
                           f'{chat_server_port}', 'original', twin],
-                         stdout=None, stderr=None)
+                         stdout=debug_mode, stderr=debug_mode)
         SERVER.append([server_ip, chat_server_port])
     show_server_locations()
 

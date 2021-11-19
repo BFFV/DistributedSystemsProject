@@ -104,6 +104,10 @@ def command_handler(msg):
 # Listen for messages
 @socketio.on('message')
 def handle_message(data):
+    # Service not available
+    if sv.server_type == 'backup':
+        return
+
     # Parse message
     if not command_handler(data):
         # Normal message: "USERNAME: MESSAGE"
@@ -114,7 +118,8 @@ def handle_message(data):
 
         # Replicate message
         try:
-            sv.twin_client.emit('rep_message', message)
+            if sv.twin_uri:
+                sv.twin_client.emit('rep_message', message)
         except exc.BadNamespaceError:
             pass
 
@@ -145,7 +150,8 @@ def handle_login(data):
     if user not in sv.usernames:
         # Replicate new user
         try:
-            sv.twin_client.emit('rep_new_user', data)
+            if sv.twin_uri:
+                sv.twin_client.emit('rep_new_user', data)
         except exc.BadNamespaceError:
             pass
 
@@ -181,21 +187,24 @@ def disconnect():
 
         # Replicate disconnection
         try:
-            sv.twin_client.emit('rep_disconnect', username)
+            if sv.twin_uri:
+                sv.twin_client.emit('rep_disconnect', username)
         except exc.BadNamespaceError:
             pass
 
         # Remove user
         sv.n_clients -= 1
         sv.usernames.remove(username)
-        socketio.emit(
-            'users', sv.n_clients, broadcast=True, include_self=False)
         msg = f'{username} has left the chat!'
-        if sv.n_clients > sv.N_CLIENTS_REQUIRED:
-            socketio.emit('response', msg)
         sv.messages_lock.acquire()
         sv.messages.append(msg)
         sv.messages_lock.release()
+        if sv.server_type == 'backup':
+            return
+        socketio.emit(
+            'users', sv.n_clients, broadcast=True, include_self=False)
+        if sv.n_clients > sv.N_CLIENTS_REQUIRED:
+            socketio.emit('response', msg)
 
 
 # Migrate to new server
