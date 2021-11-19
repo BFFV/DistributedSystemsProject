@@ -19,9 +19,13 @@ Profesor: Javier Bustos
 * Servidor
 
 Para correr el servidor, ejecutar la siguiente línea dentro de la carpeta 'server': "python3 main.py -N"
-Donde N corresponde a cualquier número entero positivo (ej: "python3 main.py -2").
+Donde N corresponde a cualquier número entero positivo (ej: "python3 main.py -2"). 
 
-- Esto ejecuta un server de relay que actúa como intermediario entre los clientes y servidores de chat actuales, dado que estos últimos van migrando y cambiando sus IP y puerto.
+Esto ejecuta un server de relay que actúa como intermediario entre los clientes y servidores de chat actuales, dado que estos últimos van migrando y cambiando sus IP y puerto.
+Este servidor de relay también actúa como controlador de los otros, recibiendo comandos para apagar y prender cualquiera de los 2 servidores de chat disponibles:
+
+- "APAGAR -N": Apaga el servidor de chat número N (el N tiene que ser 1 o 2, y corresponder a un servidor actualmente prendido).
+- "PRENDER -N": Prende el servidor de chat número N (el N tiene que ser 1 o 2, y corresponder a un servidor actualmente apagado).
 
 * Cliente
 
@@ -44,6 +48,8 @@ Esto permite realizar migraciones transparentes para el cliente, haciendo que la
 chat anteriores ya no sean necesarias, por lo que simplemente se eliminan tras terminar el proceso de migración.
 
 La distancia a los servidores se determina comparando sus IP a través de máscaras, y en caso de tener la misma IP se desempata con la que tenga el menor puerto.
+
+El sistema es tolerante a fallas del lado del servidor, ya que al apagar uno de los servidores se aprovecha la existencia del otro servidor (replicado) para mantener el servicio funcional. Además, si ambos servidores se apagan, los clientes seguirán conectados (sin poder hacer nada), y cuando se vuelva a prender cualquier servidor se resumirá la disponibilidad del chat.
 
 * Consideraciones
 
