@@ -131,10 +131,6 @@ def handle_login(data):
     if c_data in sv.old_users:
         user = sv.old_users[c_data]
         sv.build_user(user, request.sid, data['ip'], data['port'], data['id'])
-        if sv.n_clients == sv.N_CLIENTS_REQUIRED:
-            print('Chat is now active!')
-            broadcast_past_messages()
-            sv.N_CLIENTS_REQUIRED = -1  # Chat is permanent from now on
         return
 
     # Check new users
@@ -316,6 +312,9 @@ def replicate_disconnection(username):
 @socketio.on('shutdown')
 def shutdown(data):
     sv.shutdown = True
+    sv.can_migrate = False
+
+    # Move clients to twin
     if data == 'twin':
         users_info = {f'{x.ip}:{x.port}': x.username for x in sv.users.values()}
         sv.twin_client.emit('twin_off', users_info)
@@ -325,8 +324,14 @@ def shutdown(data):
         sleep(2)
         sv.sio.stop()
         return
-    # TODO: both servers down, move to relay
-    return
+
+    # Move clients to relay until new servers start
+    try:
+        if sv.server_type in ('original', 'new_twin'):
+            sv.relay_client.connect(sv.relay)
+        sv.relay_client.emit('create_server', f'http://{sv.ip}:{sv.port}')
+    except (exc.ConnectionError, exc.BadNamespaceError):
+        pass
 
 
 # Receive twin data before twin shutdown
@@ -358,7 +363,8 @@ def sync_twin(data):
         rep_users[user.username] = user.get_connections()
     rep_data = {'messages': sv.messages,
                 'rep_users': rep_users,
-                'twin': f'http://{sv.ip}:{sv.port}'}
+                'twin': f'http://{sv.ip}:{sv.port}',
+                'n_clients': sv.N_CLIENTS_REQUIRED}
     sv.twin_client.emit('twin_start', rep_data)
 
 
@@ -370,6 +376,7 @@ def initialize_twin(data):
     sv.messages_lock.release()
     sv.rep_users = data['rep_users']
     sv.usernames = set(sv.rep_users.keys())
+    sv.N_CLIENTS_REQUIRED = data['n_clients']
     sv.n_clients = len(sv.rep_users)
     sv.twin_uri = data['twin']
     try:
@@ -379,50 +386,33 @@ def initialize_twin(data):
         pass
 
 
-"""
-# Emergency migration on SIGINT
-@socketio.on('emergency')
-def emergency():
-    # Already migrating
-    if sv.attempting:
-        return
-
-    # Emergency migration
-    sv.emergency = True
-
-    # Disconnect host client
-    disconnect()
-    sv.sio.emit('finished', room=request.sid)
-    sv.skip = request.sid
-
-    # Wait for twin to be ready
-    while not sv.can_migrate:
-        sleep(0.5)
-
-    # Execute migration
-    data = {'n_clients': sv.N_CLIENTS_REQUIRED,
-            'ip': sv.ip, 'port': sv.port,
-            'relay': sv.relay, 'twin': sv.twin_uri}
-    chosen = sv.find_emergency_server(request.sid)
-
-    # Migrate to new client
-    if chosen:
-        sv.sio.emit('create_server', data, room=chosen)
-        return
-
-    # Migrate to relay
+# Backup data before and then shutdown
+@socketio.on('backup_ready')
+def backup_ready(data):
+    users_info = {f'{x.ip}:{x.port}': x.username for x in sv.users.values()}
+    backup_data = {'messages': sv.messages,
+                   'users': users_info,
+                   'n_clients': sv.N_CLIENTS_REQUIRED}
     try:
-        sv.relay_client.emit('create_server', data)
-        return
-    except exc.BadNamespaceError:
+        sv.twin_client.connect(data)
+        sv.twin_client.emit('backup', backup_data)
+        sleep(1)
+    except (exc.ConnectionError, exc.BadNamespaceError):
         pass
-
-    # Exit
-    sv.relay_client.disconnect()
     sv.twin_client.disconnect()
-    sleep(2)
+    sv.sio.emit('reconnect', data)
     sv.sio.stop()
-"""
+
+
+# Prepare backup server
+@socketio.on('backup')
+def backup(data):
+    for location, username in data['users'].items():
+        sv.old_users[location] = username
+    sv.rep_users = dict()
+    sv.n_clients = 0
+    sv.messages = data['messages']
+    sv.N_CLIENTS_REQUIRED = data['n_clients']
 
 # *******************************************************************
 
@@ -433,7 +423,7 @@ if __name__ == '__main__':
     server_port = sys.argv[2]
     server_type = sys.argv[3]
     local_ip = get_local_ip()
-    if server_type in ('original', 'new_twin'):
+    if server_type in ('original', 'new_twin', 'backup'):
         relay = f'http://{local_ip}:{5000}'
     else:
         relay = sys.argv[6]
@@ -451,13 +441,13 @@ if __name__ == '__main__':
         if sv.twin_uri:
             sv.twin_client.connect(sv.twin_uri)
             sv.twin_client.emit('twin', f'http://{sv.ip}:{sv.port}')
-        elif sv.server_type != 'new_twin':
+        elif sv.server_type not in ('new_twin', 'backup'):
             sv.can_migrate = True
     except (exc.ConnectionError, exc.BadNamespaceError):
         pass
 
     # New server setup
-    if server_type not in ('original', 'new_twin'):
+    if server_type not in ('original', 'new_twin', 'backup'):
         try:
             sv.relay_client.connect(sv.relay)
         except exc.ConnectionError:

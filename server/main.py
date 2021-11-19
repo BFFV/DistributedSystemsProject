@@ -202,22 +202,24 @@ def connect(data):
     migration_lock.release()
 
 
-# TODO: Backup server for keeping clients connected until a server is started
+# Backup server for keeping clients connected until a server is started
 @socketio.on('create_server')
 def create_server(data):
     server_port = get_free_port()
     c_dir = os.path.dirname(os.path.realpath(__file__))
-    n_clients = data['n_clients']
-    ip = data['ip']
-    port = data['port']
-    rel = data['relay']
-    twin_data = data['twin']
+    n_clients = N_CLIENTS_REQUIRED
+    twin_data = ''
 
-    # NOTE: Change stdout from "subprocess.DEVNULL" to "None" for debugging
+    # TODO: NOTE: Change stdout from "subprocess.DEVNULL" to "None" for debugging
     subprocess.Popen(['python3', f'{c_dir}/chat_server.py',
-                      f'-{n_clients}', f'{server_port}', 'backup', twin_data,
-                      f'{ip}:{port}', f'{rel}'],
-                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                      f'-{n_clients}', f'{server_port}', 'backup',
+                      twin_data],
+                     stdout=None, stderr=None)
+
+    master_client.connect(data)
+    master_client.emit('backup_ready', f'http://{get_local_ip()}:{server_port}')
+    master_client.disconnect()
+
 
 # *******************************************************************
 
