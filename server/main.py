@@ -118,7 +118,7 @@ def check_input(command):
         return False, ''
 
 
-# TODO: Manage state of chat servers
+# Manage state of chat servers
 def manage_state():
     global active_servers, SERVER
     try:
@@ -137,9 +137,7 @@ def manage_state():
                     SERVER[s_n - 1] = None
                     active_servers -= 1
                 else:
-                    print(f'start server {s_n}')
-                    # TODO: start server s
-                    # call start server
+                    start_server(active_servers, s_n - 1)
                     active_servers += 1
                 show_server_locations()
             else:
@@ -149,11 +147,32 @@ def manage_state():
         pass
 
 
-# TODO: Start chat server
-def start_server():
-    # Check if both are down or just one
-    # Spawn new server of type new_rel, make sure it syncs with twin
-    pass
+# Start chat server
+def start_server(n_servers, server_idx):
+    if n_servers:  # Sync with current twin
+        server_port = get_free_port()
+        c_dir = os.path.dirname(os.path.realpath(__file__))
+        n_clients = N_CLIENTS_REQUIRED
+        twin_data = ''
+
+        # TODO: NOTE: Change stdout from "subprocess.DEVNULL" to "None" for debugging
+        subprocess.Popen(['python3', f'{c_dir}/chat_server.py',
+                          f'-{n_clients}', f'{server_port}', 'new_twin',
+                          twin_data],
+                         stdout=None, stderr=None)
+
+        SERVER[server_idx] = [get_local_ip(), server_port]
+        new_server = SERVER[server_idx]
+        current_idx = 0
+        if not server_idx:
+            current_idx = 1
+        current_server = SERVER[current_idx]
+        master_client.connect(f'http://{current_server[0]}:{current_server[1]}')
+        master_client.emit('sync', f'http://{new_server[0]}:{new_server[1]}')
+        master_client.disconnect()
+        return
+    # TODO: spawn first server with all data
+    return
 
 
 # ************************** Socket Events **************************

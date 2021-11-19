@@ -31,10 +31,11 @@ class Server:
         # Migration thread
         self.migrating = False
         self.migrator = Migrator(self)
-        if server_type == 'original':
+        if server_type in ('original', 'new_twin'):
             self.migrator.timer.start()
         self.can_migrate = False
         self.shutdown = False
+        self.attempting = False
 
         # Connection data
         self.ip = ip

@@ -21,6 +21,7 @@ class Migrator:
                 sleep(0.5)
             while self.server.shutdown:
                 sleep(0.5)
+            self.server.attempting = True
             self.print('Attempting to migrate...')
             chosen = self.server.find_future_server()
             if not chosen and not self.server.shutdown:
@@ -28,6 +29,7 @@ class Migrator:
                 if self.server.twin_uri:
                     self.server.twin_client.emit('twin', addr)
                     self.server.can_migrate = False
+                self.server.attempting = False
             elif not self.server.shutdown:
                 waiting = False
 

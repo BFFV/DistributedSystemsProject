@@ -312,7 +312,7 @@ def replicate_disconnection(username):
     sv.messages_lock.release()
 
 
-# TODO: Shut down server
+# Shut down server
 @socketio.on('shutdown')
 def shutdown(data):
     sv.shutdown = True
@@ -329,7 +329,7 @@ def shutdown(data):
     return
 
 
-# TODO: receive twin data before twin shutdown
+# Receive twin data before twin shutdown
 @socketio.on('twin_off')
 def receive_twin_data(data):
     for location, username in data.items():
@@ -341,7 +341,44 @@ def receive_twin_data(data):
     sv.can_migrate = True
 
 
-# TODO: delete
+# Sync with new twin
+@socketio.on('sync')
+def sync_twin(data):
+    # Already migrating
+    if sv.attempting:
+        sv.twin_uri = data
+        return
+
+    # Sync with twin
+    sv.can_migrate = False
+    sv.twin_uri = data
+    sv.twin_client.connect(sv.twin_uri)
+    rep_users = dict()
+    for user in sv.users.values():
+        rep_users[user.username] = user.get_connections()
+    rep_data = {'messages': sv.messages,
+                'rep_users': rep_users,
+                'twin': f'http://{sv.ip}:{sv.port}'}
+    sv.twin_client.emit('twin_start', rep_data)
+
+
+# Initialize new twin
+@socketio.on('twin_start')
+def initialize_twin(data):
+    sv.messages_lock.acquire()
+    sv.messages = data['messages']
+    sv.messages_lock.release()
+    sv.rep_users = data['rep_users']
+    sv.usernames = set(sv.rep_users.keys())
+    sv.n_clients = len(sv.rep_users)
+    sv.twin_uri = data['twin']
+    try:
+        sv.twin_client.connect(sv.twin_uri)
+        sv.can_migrate = True
+    except exc.ConnectionError:
+        pass
+
+
 """
 # Emergency migration on SIGINT
 @socketio.on('emergency')
@@ -396,7 +433,7 @@ if __name__ == '__main__':
     server_port = sys.argv[2]
     server_type = sys.argv[3]
     local_ip = get_local_ip()
-    if server_type == 'original':
+    if server_type in ('original', 'new_twin'):
         relay = f'http://{local_ip}:{5000}'
     else:
         relay = sys.argv[6]
@@ -414,13 +451,13 @@ if __name__ == '__main__':
         if sv.twin_uri:
             sv.twin_client.connect(sv.twin_uri)
             sv.twin_client.emit('twin', f'http://{sv.ip}:{sv.port}')
-        else:
+        elif sv.server_type != 'new_twin':
             sv.can_migrate = True
     except (exc.ConnectionError, exc.BadNamespaceError):
         pass
 
     # New server setup
-    if server_type != 'original':
+    if server_type not in ('original', 'new_twin'):
         try:
             sv.relay_client.connect(sv.relay)
         except exc.ConnectionError:
