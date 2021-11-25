@@ -49,7 +49,8 @@ class Migrator:
         chat_data = {'users': users_info,
                      'usernames': list(self.server.usernames),
                      'rep_users': self.server.rep_users,
-                     'messages': self.server.messages}
+                     'messages': self.server.messages,
+                     'private': self.server.private}
         self.server.messages = []
         self.server.messages_lock.release()
         self.server.migrating = True

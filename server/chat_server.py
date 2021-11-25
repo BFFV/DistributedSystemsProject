@@ -49,14 +49,52 @@ def fprint(text):
 # Broadcast queued messages
 def broadcast_past_messages(sid=None):
     if sid is not None:  # Send messages to specific client
-        socketio.emit('msg_queue', sv.messages, room=sid)
+        history = []
+        private_msg = sv.private[sv[sid]]
+        private_idx = 0
+        current_idx = 0
+        for idx, msg in enumerate(sv.messages):
+            if private_idx < len(private_msg):
+                current_idx = private_msg[private_idx][1]
+                while current_idx == idx:
+                    history.append(private_msg[private_idx][0])
+                    private_idx += 1
+                    if private_idx < len(private_msg):
+                        current_idx = private_msg[private_idx][1]
+                    else:
+                        current_idx = -1
+            history.append(msg)
+        if private_idx < len(private_msg):
+            history += [x[0] for x in private_msg[private_idx:]]
+        socketio.emit('msg_queue', history, room=sid)
     else:  # Send messages to everyone
         socketio.emit('msg_queue', sv.messages, broadcast=True)
 
 
 # Obtain ip/port/id for private messaging and tell client to use p2p
-def private(username_target, username_sender):
-    ip, port, node_id = sv.get_user_connections(username_target)
+def private(username_target, username_sender, message):
+    # Store private messages
+    format_msg = f'(PRIVATE) ({username_sender}) -> ' \
+                 f'({username_target}): {message}'
+    sv.private[username_target].append((format_msg, len(sv.messages)))
+
+    # Replicate private messages
+    try:
+        if sv.twin_uri:
+            sv.twin_client.emit('rep_private', {
+                'target': username_target,
+                'msg': (format_msg, len(sv.messages))})
+    except exc.BadNamespaceError:
+        pass
+
+    # Send private message
+    connection_data = sv.get_user_connections(username_target)
+    if not connection_data:
+        socketio.emit('show_private_msg', {
+            'sender': username_sender, 'target': username_target},
+                      room=request.sid)
+        return
+    ip, port, node_id = connection_data
     socketio.emit('send_private_msg', {
         'ip': ip, 'port': port, 'id': node_id,
         'sender': username_sender, 'target': username_target}, room=request.sid)
@@ -70,7 +108,8 @@ def reset_server(new_n):
 
 
 # Parse & delegate different commands
-def command_handler(msg):
+def command_handler(data):
+    msg = data[0]
     message = msg.strip().split()
     if not message:  # Empty message
         res = 'Messages can\'t be empty!'
@@ -82,11 +121,11 @@ def command_handler(msg):
             socketio.emit('event', res, room=request.sid)
             return True
         username = message[1]
-        if username not in (sv.usernames - set(sv[request.sid])):
+        if username not in (set(sv.private.keys()) - set(sv[request.sid])):
             res = 'Invalid username for private message!'
             socketio.emit('event', res, room=request.sid)
             return True
-        private(username, sv[request.sid])
+        private(username, sv[request.sid], data[1])
         return True
     if message[0] == '$reset':  # Reset command
         try:
@@ -111,7 +150,7 @@ def handle_message(data):
     # Parse message
     if not command_handler(data):
         # Normal message: "USERNAME: MESSAGE"
-        message = f'{sv[request.sid]}: {data}'
+        message = f'{sv[request.sid]}: {data[0]}'
         sv.messages_lock.acquire()
         sv.messages.append(message)
         sv.messages_lock.release()
@@ -223,6 +262,7 @@ def prepare(data):
     sv.messages_lock.acquire()
     sv.messages = data['messages']
     sv.messages_lock.release()
+    sv.private = data['private']
     sv.client.emit('ready')
     try:
         sv.relay_client.emit('register', {
@@ -280,12 +320,20 @@ def replicate_message(message):
         socketio.emit('response', message, broadcast=True)
 
 
+# Replicate private messages
+@socketio.on('rep_private')
+def replicate_private(data):
+    sv.private[data['target']].append(data['msg'])
+
+
 # Replicate new users
 @socketio.on('rep_new_user')
 def replicate_new_user(data):
     sv.n_clients += 1
     sv.rep_users[data['user']] = (data['ip'], data['port'], data['id'])
     sv.usernames.add(data['user'])
+    if data['user'] not in sv.private:
+        sv.private[data['user']] = []
     socketio.emit('users', sv.n_clients, broadcast=True)
 
     # Check if N required clients have joined
@@ -371,6 +419,7 @@ def sync_twin(data):
     for user in sv.users.values():
         rep_users[user.username] = user.get_connections()
     rep_data = {'messages': sv.messages,
+                'private': sv.private,
                 'rep_users': rep_users,
                 'twin': f'http://{sv.ip}:{sv.port}',
                 'n_clients': sv.N_CLIENTS_REQUIRED}
@@ -383,6 +432,7 @@ def initialize_twin(data):
     sv.messages_lock.acquire()
     sv.messages = data['messages']
     sv.messages_lock.release()
+    sv.private = data['private']
     sv.rep_users = data['rep_users']
     sv.usernames = set(sv.rep_users.keys())
     sv.N_CLIENTS_REQUIRED = data['n_clients']
@@ -400,6 +450,7 @@ def initialize_twin(data):
 def backup_ready(data):
     users_info = {f'{x.ip}:{x.port}': x.username for x in sv.users.values()}
     backup_data = {'messages': sv.messages,
+                   'private': sv.private,
                    'users': users_info,
                    'n_clients': sv.N_CLIENTS_REQUIRED}
     try:
@@ -421,6 +472,7 @@ def backup(data):
     sv.rep_users = dict()
     sv.n_clients = 0
     sv.messages = data['messages']
+    sv.private = data['private']
     sv.N_CLIENTS_REQUIRED = data['n_clients']
 
 # *******************************************************************

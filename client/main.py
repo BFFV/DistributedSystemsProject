@@ -142,7 +142,7 @@ def send_message():
         if len(msg) >= 3:
             private_msg = ' '.join(msg[2:])
             sio_lock.acquire()
-            sio.emit('message', ' '.join(msg[:2]))  # To protect private text
+            sio.emit('message', [' '.join(msg[:2]), private_msg])
             sio_lock.release()
             return
     if not accepted:  # Server was reset
@@ -151,7 +151,7 @@ def send_message():
         print_lock.release()
         raise KeyboardInterrupt
     sio_lock.acquire()
-    sio.emit('message', message)
+    sio.emit('message', [message, None])
     sio_lock.release()
 
 
@@ -226,6 +226,22 @@ def send_private_message(data):
         print('Failed to send private message!')
         print('\n' + ask_input)
         print_lock.release()
+    private_ready = True
+
+
+# Show private message
+@sio_a.on('show_private_msg')
+@sio_b.on('show_private_msg')
+def show_private_message(data):
+    global private_ready
+    private_message = f'(PRIVATE) ({data["sender"]}) -> ' \
+                      f'({data["target"]}): {private_msg}'
+    chat.append('\n' + private_message)
+    print_lock.acquire()
+    print('Private message sent successfully!')
+    if chat_is_active:
+        print_state()
+    print_lock.release()
     private_ready = True
 
 

@@ -24,6 +24,7 @@ class Server:
         # Messages
         self.messages = []
         self.messages_lock = Lock()
+        self.private = dict()  # Key: username, Value: private messages
 
         # Server type
         self.server_type = server_type
@@ -79,6 +80,8 @@ class Server:
         self.n_clients += 1
         self.users[socket_id] = User(username, socket_id, *args)
         self.usernames.add(username)
+        if username not in self.private:
+            self.private[username] = []
 
     # Get connection data from user
     def get_user_connections(self, username):
@@ -87,6 +90,7 @@ class Server:
                 return user.get_connections()
         if username in self.rep_users:
             return self.rep_users[username]
+        return False
 
     # Choose new client to migrate the server
     def find_future_server(self):
