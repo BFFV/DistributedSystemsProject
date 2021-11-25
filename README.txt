@@ -35,6 +35,8 @@ Los clientes del chat pueden enviar mensajes, y además tienen a su disposición
 
 - "$private USER MSG": Enviar un mensaje privado "MSG" (que NO pasa por el servidor) al usuario de nombre USER.
 
+La mensajería puede realizarse incluso si el destinatario está desconectado, en cuyo caso recibirá los mensajes al volver a conectarse.
+
 * Arquitectura
 
 La transmisión de mensajes se realiza mediante una arquitectura cliente servidor, con la particularidad de que hay 2 servidores replicados que van migrando cada 30 segundos cada uno (en caso de tener clientes a los que migrar).
@@ -51,6 +53,7 @@ La distancia a los servidores se determina comparando sus IP a través de másca
 
 El sistema es tolerante a fallas del lado del servidor, ya que al apagar uno de los servidores se aprovecha la existencia del otro servidor (replicado) para mantener el servicio funcional.
 Además, si ambos servidores se apagan, los clientes seguirán conectados (sin poder hacer nada), y cuando se vuelva a prender cualquier servidor se resumirá la disponibilidad del chat.
+Por último, un cliente desconectado podrá ver los mensajes que le llegaron mientras estaba inactivo al volver a conectarse.
 
 * Consideraciones
 
