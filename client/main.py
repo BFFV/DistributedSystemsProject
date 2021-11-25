@@ -229,6 +229,22 @@ def send_private_message(data):
     private_ready = True
 
 
+# Show private message
+@sio_a.on('show_private_msg')
+@sio_b.on('show_private_msg')
+def show_private_message(data):
+    global private_ready
+    private_message = f'(PRIVATE) ({data["sender"]}) -> ' \
+                      f'({data["target"]}): {private_msg}'
+    chat.append('\n' + private_message)
+    print_lock.acquire()
+    print('Private message sent successfully!')
+    if chat_is_active:
+        print_state()
+    print_lock.release()
+    private_ready = True
+
+
 # Callback function for private messaging
 def private_event(event, this, other, data):
     if event == 'node_message':

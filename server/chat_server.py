@@ -74,19 +74,25 @@ def broadcast_past_messages(sid=None):
 # Obtain ip/port/id for private messaging and tell client to use p2p
 def private(username_target, username_sender, message):
     # Store private messages
-    sv.private[username_target].append((message, len(sv.messages)))
+    format_msg = f'(PRIVATE) ({username_sender}) -> ' \
+                 f'({username_target}): {message}'
+    sv.private[username_target].append((format_msg, len(sv.messages)))
 
     # Replicate private messages
     try:
         if sv.twin_uri:
             sv.twin_client.emit('rep_private', {
-                'target': username_target, 'msg': (message, len(sv.messages))})
+                'target': username_target,
+                'msg': (format_msg, len(sv.messages))})
     except exc.BadNamespaceError:
         pass
 
     # Send private message
     connection_data = sv.get_user_connections(username_target)
     if not connection_data:
+        socketio.emit('show_private_msg', {
+            'sender': username_sender, 'target': username_target},
+                      room=request.sid)
         return
     ip, port, node_id = connection_data
     socketio.emit('send_private_msg', {
@@ -144,7 +150,7 @@ def handle_message(data):
     # Parse message
     if not command_handler(data):
         # Normal message: "USERNAME: MESSAGE"
-        message = f'{sv[request.sid]}: {data}'
+        message = f'{sv[request.sid]}: {data[0]}'
         sv.messages_lock.acquire()
         sv.messages.append(message)
         sv.messages_lock.release()
