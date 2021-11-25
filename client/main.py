@@ -142,7 +142,7 @@ def send_message():
         if len(msg) >= 3:
             private_msg = ' '.join(msg[2:])
             sio_lock.acquire()
-            sio.emit('message', ' '.join(msg[:2]))  # To protect private text
+            sio.emit('message', [' '.join(msg[:2]), private_msg])
             sio_lock.release()
             return
     if not accepted:  # Server was reset
@@ -151,7 +151,7 @@ def send_message():
         print_lock.release()
         raise KeyboardInterrupt
     sio_lock.acquire()
-    sio.emit('message', message)
+    sio.emit('message', [message, None])
     sio_lock.release()
 
 
