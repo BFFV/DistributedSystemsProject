@@ -185,4 +185,4 @@ Explicado en el [**README**](README.txt).
 
 ## Manual de uso
 
-El manual de uso de la aplicación se encuentra en el archivo [**README.txt**](README.txt) disponible en el repositorio de la app.
+El manual de uso de la aplicación se encuentra en el archivo [**README**](README.txt) disponible en el repositorio de la app.
