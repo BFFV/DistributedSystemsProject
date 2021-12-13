@@ -355,7 +355,7 @@ if __name__ == '__main__':
         # Send messages
         while True:
             send_message()
-    except (exc.ConnectionError, exc.BadNamespaceError):
+    except (exc.ConnectionError, exc.BadNamespaceError, KeyboardInterrupt):
         print('A connection error has occurred, please try to connect again...')
     finally:
         graceful_disconnect()
